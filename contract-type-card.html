@@ -110,14 +110,17 @@
     width: 46px;
     height: 46px;
     border-radius: 50%;
-    background: rgba(255,255,255,0.15);
-    border: 1px solid rgba(255,255,255,0.35);
+    background: linear-gradient(160deg, rgba(255,255,255,0.32) 0%, rgba(255,255,255,0.06) 100%);
+    border: 1px solid rgba(255,255,255,0.45);
     font-size: 13px;
     font-weight: 600;
     color: #fff;
-    -webkit-backdrop-filter: blur(8px);
-    backdrop-filter: blur(8px);
-    box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+    -webkit-backdrop-filter: blur(14px) saturate(180%);
+    backdrop-filter: blur(14px) saturate(180%);
+    box-shadow:
+      0 4px 12px rgba(0,0,0,0.3),
+      inset 0 1px 1px rgba(255,255,255,0.5),
+      inset 0 -6px 10px rgba(0,0,0,0.15);
     z-index: 2;
   }
 
