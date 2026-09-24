@@ -521,3 +521,425 @@ body {
   color: var(--text-primary);
   border-color: var(--edge-hi);
 }
+
+/* ==========================================================
+   Nova app screen — orb console, transcript, sidebar recents
+   Uses a blue-violet accent (this app's existing brand) instead
+   of --accent, since it's layered on top of the base theme.
+   ========================================================== */
+
+:root {
+  --nova-accent-a: #7fa1ff;
+  --nova-accent-b: #b98cff;
+  --nova-accent-contrast: #161022;
+  --nova-glow: rgba(140, 120, 255, 0.35);
+}
+
+.workspace {
+  display: grid;
+  grid-template-columns: 1fr 280px;
+  gap: 16px;
+  height: 100%;
+  padding: 16px;
+}
+
+@media (max-width: 860px) {
+  .workspace {
+    grid-template-columns: 1fr;
+  }
+}
+
+.main-pane {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  position: relative;
+}
+
+.titlebar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 4px 8px 0;
+}
+
+.titlebar__status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 13px;
+  letter-spacing: 0.02em;
+}
+
+.status-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--status-online);
+  box-shadow: 0 0 6px var(--status-online);
+}
+
+.titlebar__online {
+  color: var(--text-tertiary);
+  font-weight: 500;
+  font-size: 11.5px;
+}
+
+.icon-btn-sm {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-tertiary);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+}
+
+.icon-btn-sm:hover {
+  color: var(--text-primary);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.logs-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: transparent;
+  border: none;
+  color: var(--text-tertiary);
+  font-family: var(--font-body);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.logs-btn:hover {
+  color: var(--text-primary);
+}
+
+/* orb */
+
+.orb-stage {
+  position: relative;
+  width: 220px;
+  height: 220px;
+  margin: 26px 0 18px 10px;
+  flex-shrink: 0;
+}
+
+.orb {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  position: relative;
+  background:
+    radial-gradient(circle at 32% 26%, rgba(255, 255, 255, 0.9) 0%, rgba(216, 225, 255, 0.45) 9%, transparent 20%),
+    radial-gradient(circle at 42% 38%, #dfe7ff 0%, #9fb3ff 32%, #8b6bff 64%, #4c3aa8 100%);
+  box-shadow:
+    inset 0 12px 30px rgba(255, 255, 255, 0.3),
+    inset 0 -22px 44px rgba(30, 10, 80, 0.45),
+    0 0 80px var(--nova-glow);
+}
+
+.orb::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background-image:
+    radial-gradient(circle, rgba(255, 255, 255, 0.9) 1px, transparent 1.6px),
+    radial-gradient(circle, rgba(255, 255, 255, 0.7) 1px, transparent 1.6px),
+    radial-gradient(circle, rgba(255, 255, 255, 0.55) 1px, transparent 1.6px);
+  background-size: 42px 42px, 58px 58px, 30px 30px;
+  background-position: 12px 24px, 64px 96px, 150px 44px;
+  opacity: 0.55;
+  mix-blend-mode: screen;
+}
+
+/* floating glass stat badges over the orb edge — same recipe as the
+   Contract Type card: low-opacity fill + strong blur so the orb
+   visibly frosts underneath where the bubble overlaps it */
+.orb-badge {
+  position: absolute;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(160deg, rgba(255, 255, 255, 0.3) 0%, rgba(255, 255, 255, 0.05) 100%);
+  border-width: 1px;
+  border-style: solid;
+  border-top-color: var(--edge-hi);
+  border-left-color: var(--edge-hi-soft);
+  border-right-color: var(--edge-lo-soft);
+  border-bottom-color: var(--edge-lo);
+  -webkit-backdrop-filter: blur(14px) saturate(160%);
+  backdrop-filter: blur(14px) saturate(160%);
+  box-shadow:
+    0 4px 14px rgba(0, 0, 0, 0.35),
+    inset 0 1px 1px rgba(255, 255, 255, 0.5),
+    inset 0 -5px 8px rgba(0, 0, 0, 0.15);
+  font-family: var(--font-mono);
+  color: #fff;
+  z-index: 2;
+}
+
+.orb-badge__value {
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.orb-badge__label {
+  font-size: 7.5px;
+  letter-spacing: 0.07em;
+  color: rgba(255, 255, 255, 0.75);
+  margin-top: 2px;
+}
+
+.orb-badge--a { top: -4px; left: -12px; }
+.orb-badge--b { top: -8px; right: -16px; }
+.orb-badge--c { bottom: -10px; left: 36%; }
+
+/* granted tools pill */
+
+.tools-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--text-secondary);
+  width: max-content;
+  margin: 0 0 18px 10px;
+  cursor: pointer;
+}
+
+.tools-pill svg {
+  opacity: 0.7;
+}
+
+/* left icon rail: mute / language / gesture toggle */
+
+.icon-rail {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 0 0 auto 10px;
+}
+
+.icon-circle {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-secondary);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.icon-circle:hover {
+  color: var(--text-primary);
+}
+
+/* transcript */
+
+.transcript {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  justify-content: flex-end;
+  padding: 12px 8px;
+}
+
+.transcript__msg {
+  max-width: 620px;
+}
+
+.transcript__text {
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--text-primary);
+}
+
+.transcript__from {
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--nova-accent-a);
+  margin-top: 8px;
+}
+
+.transcript__actions {
+  display: flex;
+  gap: 2px;
+  margin-top: 2px;
+}
+
+/* composer */
+
+.composer-bar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 8px 8px 18px;
+  margin: 10px 8px 26px;
+  border-radius: 999px;
+  flex-shrink: 0;
+  position: relative;
+}
+
+.composer-bar__input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  outline: none;
+  color: var(--text-primary);
+  font-family: var(--font-body);
+  font-size: 13.5px;
+}
+
+.composer-bar__input::placeholder {
+  color: var(--text-tertiary);
+}
+
+.composer-bar .icon-btn-sm {
+  width: 34px;
+  height: 34px;
+}
+
+.send-pill {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 9px 20px;
+  border-radius: 999px;
+  border: none;
+  cursor: pointer;
+  background: linear-gradient(135deg, var(--nova-accent-a), var(--nova-accent-b));
+  color: var(--nova-accent-contrast);
+  font-family: var(--font-body);
+  font-weight: 700;
+  font-size: 13px;
+  box-shadow: 0 8px 22px var(--nova-glow), inset 0 1px 0 rgba(255, 255, 255, 0.4);
+}
+
+.drive-badge {
+  position: absolute;
+  left: 0;
+  bottom: -14px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+/* right sidebar: new chat / search / recents */
+
+.sidebar-panel {
+  display: flex;
+  flex-direction: column;
+  padding: 16px;
+  min-height: 0;
+}
+
+.new-chat-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  padding: 11px;
+  border-radius: var(--radius-sm);
+  border: none;
+  cursor: pointer;
+  background: linear-gradient(135deg, var(--nova-accent-a), var(--nova-accent-b));
+  color: var(--nova-accent-contrast);
+  font-family: var(--font-body);
+  font-weight: 700;
+  font-size: 13.5px;
+  box-shadow: 0 8px 20px var(--nova-glow), inset 0 1px 0 rgba(255, 255, 255, 0.4);
+  margin-bottom: 14px;
+}
+
+.sidebar-search {
+  margin-bottom: 18px;
+  padding: 9px 12px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text-tertiary);
+  font-size: 12.5px;
+}
+
+.recents-label {
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  color: #b9c2ff;
+  margin: 0 0 8px 4px;
+}
+
+.recents-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  overflow-y: auto;
+  min-height: 0;
+}
+
+.recent-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 8px 8px 10px;
+  border-radius: var(--radius-sm);
+  font-size: 12.5px;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.recent-item span {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.recent-item svg {
+  flex-shrink: 0;
+  opacity: 0;
+  color: var(--text-tertiary);
+  transition: opacity 0.12s ease;
+}
+
+.recent-item:hover {
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text-primary);
+}
+
+.recent-item:hover svg {
+  opacity: 0.8;
+}
