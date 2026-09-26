@@ -3,8 +3,8 @@ const fs = require('fs');
 const path = require('path');
 const { ClaudeSource } = require('./claude');
 const { OpencodeSource } = require('./opencode');
-const { buildModel } = require('./model');
-const { Vault } = require('./vault');
+const { buildModel, mergeVaultProjects } = require('./model');
+const { Vault, safeName } = require('./vault');
 
 // Reads both tools, builds the project model, keeps the vault in sync,
 // and calls onData whenever something changed on disk.
@@ -38,7 +38,10 @@ class Engine {
       try { written = this.vault.write(model); } catch (e) { vaultError = e.message; }
     }
     let notes = [];
-    try { notes = this.vault.userNotes(model); } catch (e) { vaultError = vaultError || e.message; }
+    try {
+      const idByRel = mergeVaultProjects(model, this.vault.folders(), safeName);
+      notes = this.vault.userNotes(idByRel);
+    } catch (e) { vaultError = vaultError || e.message; }
 
     const data = {
       projects: model.projects,

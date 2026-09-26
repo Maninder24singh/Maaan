@@ -1,0 +1,42 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  body { width: 300px; margin: 0; padding: 12px; background: #0A0A0B; color: #E8E8EA; font: 13px/1.4 "Segoe UI", system-ui, sans-serif; }
+  h1 { font-size: 14px; margin: 0 0 8px; }
+  label { display: block; font-size: 11px; color: #8A8A93; margin: 8px 0 3px; }
+  input, select, textarea { width: 100%; box-sizing: border-box; background: #141416; color: inherit; border: 1px solid #2A2A30; border-radius: 6px; padding: 6px 8px; font: inherit; }
+  textarea { height: 56px; resize: vertical; }
+  .row { display: flex; gap: 6px; margin-top: 10px; }
+  button { flex: 1; background: #141416; color: inherit; border: 1px solid #2A2A30; border-radius: 6px; padding: 7px; cursor: pointer; font: inherit; }
+  button.primary { background: #F5C542; color: #000; border-color: #F5C542; font-weight: 700; }
+  .status { font-size: 12px; color: #8A8A93; margin-top: 8px; min-height: 1.3em; }
+  .status.ok { color: #4ADE80; } .status.bad { color: #FF7A7A; }
+  [hidden] { display: none !important; }
+</style>
+</head>
+<body>
+  <h1>Save to Memory Vault</h1>
+  <div id="pair" hidden>
+    <p>Paste the key from the app: <b>Connections → Browser → Copy key</b>.</p>
+    <label for="token">Key</label><input id="token" type="password" autocomplete="off">
+    <label for="port">Port</label><input id="port" type="number" value="47321">
+    <div class="row"><button class="primary" id="pair-btn">Connect</button></div>
+  </div>
+  <div id="main" hidden>
+    <label for="project">Save into</label>
+    <select id="project"><option value="">Inbox</option></select>
+    <label for="note">Your note (optional)</label>
+    <textarea id="note" placeholder="Why this is useful…"></textarea>
+    <div class="row">
+      <button class="primary" id="save-page">Save page</button>
+      <button id="save-sel">Save selection</button>
+    </div>
+    <div class="row"><button id="unpair">Change key</button></div>
+  </div>
+  <div class="status" id="status"></div>
+  <script src="shared.js"></script>
+  <script src="popup.js"></script>
+</body>
+</html>

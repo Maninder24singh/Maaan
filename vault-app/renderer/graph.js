@@ -8,7 +8,7 @@
   const COLOR = {
     project: C('project'), subproject: C('subproject'), claude: C('claude'), opencode: C('opencode'),
     'file-code': C('file-code'), 'file-py': C('file-py'), 'file-web': C('file-web'),
-    'file-doc': C('file-doc'), 'file-data': C('file-data'), note: C('note'), ghost: C('ghost'),
+    'file-doc': C('file-doc'), 'file-data': C('file-data'), note: C('note'), clip: C('clip'), ghost: C('ghost'),
     focus: C('focus'), ink: C('ink'), muted: C('muted'),
   };
 
@@ -178,7 +178,7 @@
           if (free[i] && Math.abs(pts[i].x - p.x) < clear && Math.abs(pts[i].y - p.y) < clear) free[i] = 0;
         }
       }
-      this.shapeWorld = { pts, strokes: shape.strokes, occupied, dot: Math.max(1.4, scale * 1.1) };
+      this.shapeWorld = { pts, strokes: shape.strokes, occupied, dot: Math.max(0.9, scale * 0.8) };
       return targets;
     }
 
@@ -330,10 +330,38 @@
     // ---------- drawing ----------
     // The picture: colored strokes along the outline, dots for everything not holding a real node.
     drawShape(k) {
-      const { ctx } = this;
+      const sw = this.shapeWorld;
+      // While the picture fades in, draw it directly. After that, reuse a cached image
+      // so panning and zooming stay cheap even with thousands of dots.
+      if (this.shapeFade < 1) { this.paintShape(this.ctx, k, this.shapeFade); return; }
+      if (!sw.bounds) {
+        let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+        for (const p of sw.pts) { if (p.x < x0) x0 = p.x; if (p.y < y0) y0 = p.y; if (p.x > x1) x1 = p.x; if (p.y > y1) y1 = p.y; }
+        const pad = sw.dot * 3;
+        sw.bounds = { x0: x0 - pad, y0: y0 - pad, w: x1 - x0 + pad * 2, h: y1 - y0 + pad * 2 };
+      }
+      const b = sw.bounds;
+      // Pixels per world unit, rounded to a power of two so small zooms reuse the cache.
+      let res = Math.pow(2, Math.round(Math.log2(Math.max(0.25, k * this.dpr))));
+      res = Math.min(res, 4096 / Math.max(b.w, b.h));
+      if (!sw.cache || sw.cache.res !== res) {
+        const c = document.createElement('canvas');
+        c.width = Math.max(1, Math.ceil(b.w * res));
+        c.height = Math.max(1, Math.ceil(b.h * res));
+        const cx = c.getContext('2d');
+        cx.scale(res, res);
+        cx.translate(-b.x0, -b.y0);
+        this.paintShape(cx, res / this.dpr, 1);
+        sw.cache = { res, canvas: c };
+      }
+      this.ctx.drawImage(sw.cache.canvas, b.x0, b.y0, b.w, b.h);
+    }
+
+    // Unused dots stay dim so the real graph stands out (and the GPU has less to blend).
+    paintShape(ctx, k, fade) {
       const { pts, strokes, occupied, dot } = this.shapeWorld;
-      ctx.globalAlpha = 0.45 * this.shapeFade;
-      ctx.lineWidth = Math.max(0.6 / k, dot * 0.5);
+      ctx.globalAlpha = 0.2 * fade;
+      ctx.lineWidth = Math.max(0.5 / k, dot * 0.45);
       for (const [a, b] of strokes) {
         const p = pts[a], q = pts[b];
         ctx.strokeStyle = p.color;
@@ -342,7 +370,7 @@
       for (let i = 0; i < pts.length; i++) {
         if (occupied.has(i)) continue;
         const p = pts[i];
-        ctx.globalAlpha = (p.edge ? 0.9 : 0.35) * this.shapeFade;
+        ctx.globalAlpha = (p.edge ? 0.2 + 0.35 * p.s : 0.14) * fade;
         ctx.fillStyle = p.color;
         ctx.beginPath(); ctx.arc(p.x, p.y, p.edge ? dot : dot * 0.8, 0, Math.PI * 2); ctx.fill();
       }

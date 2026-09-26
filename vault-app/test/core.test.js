@@ -6,8 +6,8 @@ const os = require('os');
 const path = require('path');
 const { ClaudeSource } = require('../lib/claude');
 const { filesFromPart } = require('../lib/opencode');
-const { buildModel } = require('../lib/model');
-const { Vault, GENERATED } = require('../lib/vault');
+const { buildModel, mergeVaultProjects } = require('../lib/model');
+const { Vault, GENERATED, safeName } = require('../lib/vault');
 
 const tmp = () => fs.mkdtempSync(path.join(os.tmpdir(), 'mv-test-'));
 const line = o => JSON.stringify(o) + '\n';
@@ -76,7 +76,7 @@ test('vault writes session and project notes, never touches user notes', () => {
   assert.match(sessions[0], /renamed \(cc-abcdef12\)\.md$/);
   assert.match(fs.readFileSync(path.join(dir, 'app', 'sessions', sessions[0]), 'utf8'), new RegExp('generated: ' + GENERATED));
   assert.equal(fs.readFileSync(path.join(dir, 'app', 'Ideas.md'), 'utf8'), 'See [[a.js]] and [[Missing]]');
-  const notes = v.userNotes(model);
+  const notes = v.userNotes(mergeVaultProjects(model, v.folders(), safeName));
   assert.equal(notes.length, 1);
   assert.equal(notes[0].projectId, model.projects[0].id);
   assert.deepEqual(notes[0].links, ['a.js', 'Missing']);

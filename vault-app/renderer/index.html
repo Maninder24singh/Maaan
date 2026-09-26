@@ -8,14 +8,33 @@
 </head>
 <body>
   <div class="shell">
-    <aside class="sidebar">
+    <aside class="sidebar" id="sidebar">
       <div class="brand">
+        <span class="brand-mark" aria-hidden="true"></span>
         <span class="brand-name">Memory Vault</span>
         <span class="live" id="live" title="Watching Claude Code and OpenCode for new work"><span class="live-dot"></span><span id="live-text">Starting</span></span>
       </div>
-      <input id="project-filter" class="field" type="search" placeholder="Filter projects" aria-label="Filter projects">
+
+      <div class="search-box">
+        <svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="7" cy="7" r="4.5" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="m10.5 10.5 3 3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+        <input id="project-filter" type="search" placeholder="Search projects" aria-label="Search projects">
+      </div>
+
+      <div class="side-actions">
+        <button type="button" class="side-btn primary" id="new-project">+ New project</button>
+        <button type="button" class="side-btn" id="add-files" title="Add .md files as notes or new projects">Add files</button>
+        <input type="file" id="add-files-input" accept=".md,.markdown,.txt" multiple hidden>
+      </div>
+
+      <div class="section-head">
+        <span>Projects</span>
+        <button type="button" class="sort-btn" id="sort-btn" title="Change order">Recent</button>
+      </div>
       <nav class="tree" id="tree" aria-label="Projects"></nav>
-      <div class="sources" id="sources"></div>
+      <div class="drop-hint" id="drop-hint">Drop .md files or folders here to add projects</div>
+
+      <div class="section-head"><span>Connections</span></div>
+      <ul class="conns" id="conns"></ul>
       <button class="link-btn" id="open-settings" type="button">Folders and permissions</button>
     </aside>
 
@@ -33,6 +52,7 @@
             <option value="shape">Shape (your image)</option>
           </select>
           <button type="button" class="field small btn" id="shape-pick" hidden>Change image…</button>
+          <button type="button" class="ask-btn" id="ask-toggle" aria-expanded="false">Ask AI</button>
           <input type="file" id="shape-file" accept="image/png,image/jpeg,image/webp" hidden>
         </div>
       </div>
@@ -43,6 +63,20 @@
         <div class="empty" id="empty" hidden></div>
         <div class="busy" id="busy" role="status" hidden></div>
         <section class="card" id="card" hidden></section>
+        <div class="drop-veil" id="drop-veil" hidden><div id="drop-veil-text">Drop to add</div></div>
+        <aside class="drawer" id="drawer" hidden aria-label="Ask your vault">
+          <div class="drawer-head">
+            <strong>Ask your vault</strong>
+            <span class="model-tag" id="model-tag"></span>
+            <button type="button" class="icon-btn" id="chat-reset" title="New chat">New</button>
+            <button type="button" class="icon-btn" id="drawer-close" aria-label="Close">×</button>
+          </div>
+          <div class="chat" id="chat" aria-live="polite"></div>
+          <form class="chat-form" id="chat-form">
+            <textarea id="chat-input" rows="2" placeholder="Try: open spotify · find my resume · what did I do on voice-agent?"></textarea>
+            <button type="submit" class="primary-sm" id="chat-send">Send</button>
+          </form>
+        </aside>
         <div class="zoom" role="group" aria-label="Zoom">
           <button type="button" id="zoom-in" title="Zoom in (+)">+</button>
           <span id="zoom-level">100%</span>
@@ -52,6 +86,11 @@
       </div>
     </main>
   </div>
+
+  <div class="overlay" id="modal" hidden>
+    <div class="dialog" id="modal-body" role="dialog" aria-modal="true"></div>
+  </div>
+  <div class="toasts" id="toasts" aria-live="polite"></div>
 
   <div class="overlay" id="overlay" hidden>
     <form class="dialog" id="consent" novalidate>

@@ -72,4 +72,38 @@ function buildModel(sessions) {
   };
 }
 
-module.exports = { buildModel };
+// Folders in the vault become projects too: ones you made yourself (drag and drop,
+// "New project"), and sub-folders inside a tool project. Returns folder -> project id.
+function mergeVaultProjects(model, folders, safeName) {
+  const byFolderName = new Map(model.projects.map(p => [safeName(p.name, 80).toLowerCase(), p]));
+  for (const p of model.projects) p.vaultRel = [safeName(p.name, 80)];
+  const idByRel = new Map(model.projects.map(p => [p.vaultRel[0].toLowerCase(), p.id]));
+  const added = [];
+  for (const f of [...folders].sort((a, b) => a.rel.length - b.rel.length)) {
+    const key = f.rel.join('/').toLowerCase();
+    if (f.rel.length === 1 && byFolderName.has(key)) {
+      const p = byFolderName.get(key);
+      if (f.about) p.about = f.about;
+      continue;
+    }
+    const parentId = f.rel.length > 1 ? idByRel.get(f.rel.slice(0, -1).join('/').toLowerCase()) : null;
+    if (f.rel.length > 1 && !parentId) continue;
+    const p = {
+      id: 'v:' + key,
+      name: f.rel[f.rel.length - 1],
+      path: f.folder ? normPath(f.folder) : normPath(f.dir),
+      parentId,
+      sources: ['vault'],
+      sessionCount: 0,
+      lastActive: f.mtime,
+      vaultRel: f.rel,
+      about: f.about || '',
+    };
+    idByRel.set(key, p.id);
+    added.push(p);
+  }
+  model.projects.push(...added);
+  return idByRel;
+}
+
+module.exports = { buildModel, mergeVaultProjects };

@@ -29,6 +29,9 @@
       "node_modules/@mediapipe/selfie_segmentation/**",
       "package.json"
     ],
+    "extraResources": [
+      { "from": "browser-extension", "to": "browser-extension" }
+    ],
     "win": {
       "target": [
         "nsis",

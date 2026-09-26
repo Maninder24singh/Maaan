@@ -1,0 +1,16 @@
+{
+  "manifest_version": 3,
+  "name": "Save to Memory Vault",
+  "version": "0.1.0",
+  "description": "Save a page, a selection or a link into the Memory Vault app on this PC. Nothing leaves your computer.",
+  "permissions": ["contextMenus", "storage", "activeTab", "scripting"],
+  "host_permissions": ["http://127.0.0.1/*"],
+  "background": { "service_worker": "background.js" },
+  "action": { "default_popup": "popup.html", "default_title": "Save to Memory Vault" },
+  "commands": {
+    "save-page": {
+      "suggested_key": { "default": "Alt+Shift+S" },
+      "description": "Save this page (or the selected text) to Memory Vault"
+    }
+  }
+}

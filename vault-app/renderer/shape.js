@@ -5,11 +5,11 @@
 // Everything runs here on the PC: the photo is never saved or sent anywhere,
 // only the dot positions and colors are kept.
 (function () {
-  const LONG_SIDE = 640;  // working resolution
-  const EDGE_GAP = 4;     // min px between outline dots
-  const FILL_GAP = 12;    // min px between fill dots inside the body
-  const MAX_EDGE = 1800;
-  const MAX_FILL = 450;
+  const LONG_SIDE = 800;  // working resolution
+  const EDGE_GAP = 3;     // min px between outline dots
+  const FILL_GAP = 11;    // min px between fill dots inside the body
+  const MAX_EDGE = 5000;
+  const MAX_FILL = 900;
 
   function loadImage(file) {
     return new Promise((resolve, reject) => {

@@ -5,6 +5,7 @@ const path = require('path');
 const { pathToFileURL } = require('url');
 const paths = require('./lib/paths');
 const { Engine } = require('./lib/engine');
+const { createFeatures } = require('./lib/features');
 
 const SETTINGS_FILE = () => path.join(app.getPath('userData'), 'settings.json');
 
@@ -35,6 +36,12 @@ protocol.registerSchemesAsPrivileged([
 ]);
 const SERVED = ['renderer', 'node_modules/d3/dist', 'node_modules/@mediapipe/selfie_segmentation'];
 
+// The browser extension folder: next to main.js in dev, in resources/ when installed.
+function extensionDir() {
+  const packed = path.join(process.resourcesPath || '', 'browser-extension');
+  return fs.existsSync(packed) ? packed : path.join(__dirname, 'browser-extension');
+}
+
 function serveApp(req) {
   const rel = decodeURIComponent(new URL(req.url).pathname).replace(/^\/+/, '');
   const file = path.normalize(path.join(__dirname, rel));
@@ -54,10 +61,15 @@ let win = null;
 let engine = null;
 let settings = null;
 let lastData = null;
+let features = null;
 
 function send(data) {
   lastData = data;
   if (win && !win.isDestroyed()) win.webContents.send('vault:data', data);
+}
+
+function toast(text) {
+  if (win && !win.isDestroyed()) win.webContents.send('vault:toast', String(text));
 }
 
 function describe(s) {
@@ -74,7 +86,9 @@ function describe(s) {
 function startEngine() {
   if (!engine) engine = new Engine(settings, send);
   else engine.configure(settings);
-  return engine.start();
+  const data = engine.start();
+  features.startAll().catch(e => toast(e.message));
+  return data;
 }
 
 function createWindow() {
@@ -103,7 +117,31 @@ function createWindow() {
 
 app.whenReady().then(() => {
   protocol.handle('app', serveApp);
+  if (process.platform === 'win32') app.setAppUserModelId('local.memoryvault.app');
   settings = loadSettings();
+  features = createFeatures({
+    getSettings: () => settings,
+    saveSettings: s => { settings = s; saveSettings(s); },
+    getEngine: () => (settings.consented ? engine : null),
+    getData: () => lastData,
+    refresh: () => { if (engine) engine.schedule(); },
+    toast,
+  });
+
+  // Each handler returns { ok, value } or { ok: false, error } so the page can show a plain message.
+  const handle = (name, fn) => ipcMain.handle(name, async (_e, ...args) => {
+    try { return { ok: true, value: await fn(...args) }; } catch (e) { return { ok: false, error: e.message }; }
+  });
+  handle('vault:connections', () => features.status());
+  handle('vault:set-feature', (name, patch) => features.setFeature(name, patch || {}));
+  handle('vault:import', (list, targetId) => features.importPaths((list || []).filter(p => typeof p === 'string'), targetId || null));
+  handle('vault:new-project', opts => features.newProject(opts || {}));
+  handle('vault:launch', (tool, projectId) => features.launch(tool, projectId));
+  handle('vault:ask', text => features.ask(text));
+  handle('vault:approve', id => features.approve(id));
+  handle('vault:reset-chat', () => features.resetChat());
+  handle('vault:copy', text => { require('electron').clipboard.writeText(String(text)); return true; });
+  handle('vault:show-extension', () => { shell.openPath(extensionDir()); return extensionDir(); });
 
   ipcMain.handle('vault:init', () => ({ ...describe(settings), data: settings.consented ? (lastData || startEngine()) : null }));
 
@@ -151,5 +189,6 @@ app.whenReady().then(() => {
 
 app.on('window-all-closed', () => {
   if (engine) engine.stop();
+  if (features) features.stopAll();
   if (process.platform !== 'darwin') app.quit();
 });
