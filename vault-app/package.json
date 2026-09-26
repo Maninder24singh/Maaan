@@ -11,6 +11,7 @@
   },
   "license": "MIT",
   "dependencies": {
+    "@mediapipe/selfie_segmentation": "0.1.1675465747",
     "d3": "7.9.0"
   },
   "devDependencies": {
@@ -25,6 +26,7 @@
       "lib/**",
       "renderer/**",
       "node_modules/d3/dist/d3.min.js",
+      "node_modules/@mediapipe/selfie_segmentation/**",
       "package.json"
     ],
     "win": {

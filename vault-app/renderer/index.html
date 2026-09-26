@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self' data: blob:; worker-src 'self' blob:">
   <title>Memory Vault</title>
   <link rel="stylesheet" href="style.css">
 </head>
@@ -30,7 +30,10 @@
             <option value="force">Web</option>
             <option value="rings">Rings</option>
             <option value="tree">Tree</option>
+            <option value="shape">Shape (your image)</option>
           </select>
+          <button type="button" class="field small btn" id="shape-pick" hidden>Change image…</button>
+          <input type="file" id="shape-file" accept="image/png,image/jpeg,image/webp" hidden>
         </div>
       </div>
 
@@ -38,6 +41,7 @@
         <canvas id="graph"></canvas>
         <ul class="legend" id="legend"></ul>
         <div class="empty" id="empty" hidden></div>
+        <div class="busy" id="busy" role="status" hidden></div>
         <section class="card" id="card" hidden></section>
         <div class="zoom" role="group" aria-label="Zoom">
           <button type="button" id="zoom-in" title="Zoom in (+)">+</button>
@@ -83,6 +87,8 @@
   </div>
 
   <script src="../node_modules/d3/dist/d3.min.js"></script>
+  <script src="../node_modules/@mediapipe/selfie_segmentation/selfie_segmentation.js"></script>
+  <script src="shape.js"></script>
   <script src="graph.js"></script>
   <script src="app.js"></script>
 </body>

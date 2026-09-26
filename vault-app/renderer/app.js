@@ -47,8 +47,61 @@
     else if (e.key === 'Escape') { graph.select(null); renderCard(null); }
   });
 
+  // ---------- layouts, including the image shape ----------
+  let shape = store.get('shape', null);
+  if (shape) graph.shape = shape;
+  if (ui.layout === 'shape' && !shape) ui.layout = 'force';
+
+  function useLayout(name) {
+    ui.layout = name;
+    store.set('layout', name);
+    $('layout').value = name;
+    $('shape-pick').hidden = name !== 'shape';
+    graph.setLayout(name);
+  }
+
+  function busy(text, isError) {
+    const b = $('busy');
+    b.hidden = !text;
+    b.textContent = text || '';
+    b.classList.toggle('error', !!isError);
+  }
+
+  let layoutBeforePick = ui.layout;
+  function pickShape() {
+    layoutBeforePick = ui.layout === 'shape' && !shape ? 'force' : ui.layout;
+    $('shape-file').value = '';
+    $('shape-file').click();
+  }
+
+  $('shape-file').addEventListener('cancel', () => { if (!shape) useLayout(layoutBeforePick); });
+  $('shape-file').addEventListener('change', async e => {
+    const file = e.target.files && e.target.files[0];
+    if (!file) { if (!shape) useLayout(layoutBeforePick); return; }
+    busy('Reading the picture… (stays on this PC)');
+    try {
+      const next = await window.VaultShape.fromFile(file);
+      if (next.points.length < 50) throw new Error('Too few edges found. Try a sharper photo with the person in front.');
+      shape = next;
+      store.set('shape', shape);
+      graph.shape = shape;
+      useLayout('shape');
+      busy(shape.segmented ? '' : 'Could not separate the person from the background, so the whole picture is used.', !shape.segmented);
+      if (!shape.segmented) setTimeout(() => busy(''), 6000);
+    } catch (err) {
+      busy(err.message, true);
+      setTimeout(() => busy(''), 6000);
+      if (!shape) useLayout(layoutBeforePick);
+    }
+  });
+  $('shape-pick').addEventListener('click', pickShape);
+
   $('layout').value = ui.layout;
-  $('layout').addEventListener('change', e => { ui.layout = e.target.value; store.set('layout', ui.layout); graph.setLayout(ui.layout); });
+  $('shape-pick').hidden = ui.layout !== 'shape';
+  $('layout').addEventListener('change', e => {
+    if (e.target.value === 'shape' && !shape) { pickShape(); return; }
+    useLayout(e.target.value);
+  });
   graph.layout = ui.layout;
 
   $('show-files').checked = ui.showFiles;

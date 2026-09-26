@@ -1,7 +1,8 @@
 'use strict';
-const { app, BrowserWindow, ipcMain, dialog, shell } = require('electron');
+const { app, BrowserWindow, ipcMain, dialog, shell, protocol, net } = require('electron');
 const fs = require('fs');
 const path = require('path');
+const { pathToFileURL } = require('url');
 const paths = require('./lib/paths');
 const { Engine } = require('./lib/engine');
 
@@ -26,6 +27,25 @@ function saveSettings(s) {
   fs.mkdirSync(path.dirname(SETTINGS_FILE()), { recursive: true });
   fs.writeFileSync(SETTINGS_FILE(), JSON.stringify(s, null, 2));
 }
+
+// The page is served from app://local/ instead of file:// so the shape
+// segmenter can fetch its model and WebAssembly files.
+protocol.registerSchemesAsPrivileged([
+  { scheme: 'app', privileges: { standard: true, secure: true, supportFetchAPI: true } },
+]);
+const SERVED = ['renderer', 'node_modules/d3/dist', 'node_modules/@mediapipe/selfie_segmentation'];
+
+function serveApp(req) {
+  const rel = decodeURIComponent(new URL(req.url).pathname).replace(/^\/+/, '');
+  const file = path.normalize(path.join(__dirname, rel));
+  const allowed = SERVED.some(dir => file.startsWith(path.join(__dirname, dir) + path.sep));
+  if (!allowed) return new Response('Not found', { status: 404 });
+  return net.fetch(pathToFileURL(file).toString());
+}
+
+// The shape segmenter needs WebGL2. If the GPU is blocked, fall back to software
+// rendering instead of failing. Safe here: the window only ever loads this app's own files.
+app.commandLine.appendSwitch('enable-unsafe-swiftshader');
 
 // Lets tests and portable installs keep settings somewhere else.
 if (process.env.MEMORY_VAULT_USER_DATA) app.setPath('userData', process.env.MEMORY_VAULT_USER_DATA);
@@ -73,7 +93,7 @@ function createWindow() {
       sandbox: true,
     },
   });
-  win.loadFile(path.join(__dirname, 'renderer', 'index.html'));
+  win.loadURL('app://local/renderer/index.html');
   // Links inside notes open in the normal browser, never inside the app.
   win.webContents.setWindowOpenHandler(({ url }) => {
     if (/^https?:\/\//.test(url)) shell.openExternal(url);
@@ -82,6 +102,7 @@ function createWindow() {
 }
 
 app.whenReady().then(() => {
+  protocol.handle('app', serveApp);
   settings = loadSettings();
 
   ipcMain.handle('vault:init', () => ({ ...describe(settings), data: settings.consented ? (lastData || startEngine()) : null }));

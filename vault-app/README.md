@@ -69,6 +69,19 @@ The files land in `vault-app\dist\`.
 `Web` (default) is Obsidian's force layout. `Rings` puts the selected project in the center
 with sub-projects, sessions and files on rings around it. `Tree` lays it out left to right.
 
+`Shape (your image)` draws the graph in the shape of a photo:
+
+1. Pick **Shape (your image)** in the layout menu and choose a JPG or PNG.
+2. The app finds the person in the photo (MediaPipe Selfie Segmentation, which ships inside
+   the app and runs offline), traces the outline and details as colored dots, and puts your
+   projects, sessions and files on those dots. Linked things stay near each other.
+3. Leftover dots stay dim, so the picture shows even with only a few projects.
+
+The photo itself is never saved or uploaded. Only the dot positions and colors (about 100 KB)
+are kept inside the app. **Change image…** swaps it for another one. This works best with one
+person, facing the camera, upper body. It needs WebGL2, which any normal GPU has. Without it
+the app uses every edge in the whole picture instead of cutting out the person.
+
 ## Files
 
 ```
@@ -79,6 +92,6 @@ lib/opencode.js  reads OpenCode's SQLite database (read-only, built-in node:sqli
 lib/model.js     groups sessions into projects and sub-projects
 lib/vault.js     writes and reads the Markdown vault
 lib/engine.js    watches folders and pushes updates to the window
-renderer/        sidebar, canvas graph, info card
+renderer/        sidebar, canvas graph, info card, shape.js (photo -> dots)
 test/            unit tests: npm test
 ```

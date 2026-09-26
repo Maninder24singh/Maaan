@@ -40,6 +40,10 @@
       this.W = 0; this.H = 0; this.dpr = 1;
       this.needFit = true;
       this.anim = null;
+      this.shape = null;       // dot cloud from VaultShape
+      this.shapeWorld = null;  // that cloud in graph coordinates, plus which dots hold real nodes
+      this.shapeSize = 0;
+      this.shapeFade = 1;
 
       this.sim = d3.forceSimulation()
         .force('link', d3.forceLink().id(d => d.id)
@@ -105,7 +109,7 @@
 
       if (this.selected && !this.byId.has(this.selected.id)) this.selected = null;
       if (this.hovered && !this.byId.has(this.hovered.id)) this.hovered = null;
-      if (scopeChanged) this.needFit = true;
+      if (scopeChanged) { this.needFit = true; this.shapeWorld = null; this.shapeSize = 0; }
 
       this.sim.nodes(this.nodes);
       this.sim.force('link').links(this.links.map(l => ({ ...l })));
@@ -115,7 +119,67 @@
     setLayout(name) {
       this.layout = name;
       this.needFit = true;
+      this.shapeWorld = null;
+      this.shapeSize = 0;
       this.applyLayout(1);
+    }
+
+    setShape(shape) {
+      this.shape = shape;
+      if (this.layout === 'shape') this.setLayout('shape');
+    }
+
+    // Real nodes take the dots nearest to where they already are, so linked
+    // things stay close. Leftover dots stay as a dim picture behind them.
+    shapeTargets() {
+      const shape = this.shape;
+      const nodes = this.nodes;
+      if (!this.shapeSize) this.shapeSize = Math.max(900, Math.sqrt(nodes.length) * 150);
+      const scale = this.shapeSize / shape.h;
+      const pts = shape.points.map(p => ({
+        x: (p[0] - shape.w / 2) * scale, y: (p[1] - shape.h / 2) * scale, s: p[2], color: p[3], edge: p[4] === 1,
+      }));
+
+      // Where each node is now, in shape coordinates.
+      let place;
+      if (this.shapeWorld) {
+        place = n => [n.x, n.y];
+      } else {
+        const xs = nodes.map(n => n.x), ys = nodes.map(n => n.y);
+        const x0 = Math.min(...xs), x1 = Math.max(...xs), y0 = Math.min(...ys), y1 = Math.max(...ys);
+        const w = shape.w * scale, h = shape.h * scale;
+        place = n => [((n.x - x0) / Math.max(1, x1 - x0) - 0.5) * w * 0.8, ((n.y - y0) / Math.max(1, y1 - y0) - 0.5) * h * 0.8];
+      }
+
+      const rank = { project: 0, subproject: 1, session: 2, note: 3, file: 4, ghost: 5 };
+      const order = [...nodes].sort((a, b) => (rank[a.kind] ?? 6) - (rank[b.kind] ?? 6) || b.deg - a.deg);
+      const free = new Uint8Array(pts.length).fill(1);
+      const occupied = new Set();
+      const targets = new Map();
+      for (const n of order) {
+        const [px, py] = place(n);
+        let best = -1, bestCost = Infinity;
+        for (let i = 0; i < pts.length; i++) {
+          if (!free[i]) continue;
+          const cost = Math.hypot(pts[i].x - px, pts[i].y - py) / (0.35 + pts[i].s);
+          if (cost < bestCost) { bestCost = cost; best = i; }
+        }
+        if (best < 0) {
+          // More nodes than dots: stack the rest near a random dot.
+          const p = pts[Math.floor(Math.random() * pts.length)];
+          targets.set(n.id, [p.x + (Math.random() - 0.5) * 20, p.y + (Math.random() - 0.5) * 20]);
+          continue;
+        }
+        const p = pts[best];
+        targets.set(n.id, [p.x, p.y]);
+        occupied.add(best);
+        const clear = n.r * 2 + 4;
+        for (let i = 0; i < pts.length; i++) {
+          if (free[i] && Math.abs(pts[i].x - p.x) < clear && Math.abs(pts[i].y - p.y) < clear) free[i] = 0;
+        }
+      }
+      this.shapeWorld = { pts, strokes: shape.strokes, occupied, dot: Math.max(1.4, scale * 1.1) };
+      return targets;
     }
 
     applyLayout(heat) {
@@ -126,17 +190,21 @@
         return;
       }
       this.sim.stop();
-      const targets = staticLayout(this.layout, this.nodes, this.links, this.rootId);
+      const shaping = this.layout === 'shape' && this.shape;
+      const firstShape = shaping && !this.shapeWorld;
+      const targets = shaping ? this.shapeTargets() : staticLayout(this.layout === 'shape' ? 'rings' : this.layout, this.nodes, this.links, this.rootId);
       const from = new Map(this.nodes.map(n => [n.id, [n.x, n.y]]));
       const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
       const done = () => { if (this.needFit) { this.needFit = false; this.fit(true); } };
       if (reduce) {
         for (const n of this.nodes) { const t = targets.get(n.id); n.x = t[0]; n.y = t[1]; }
+        this.shapeFade = 1;
         this.draw(); done();
         return;
       }
       this.anim = d3.timer(elapsed => {
-        const k = d3.easeCubicInOut(Math.min(1, elapsed / 650));
+        const k = d3.easeCubicInOut(Math.min(1, elapsed / (firstShape ? 1100 : 650)));
+        this.shapeFade = firstShape ? k : 1;
         for (const n of this.nodes) {
           const f = from.get(n.id), t = targets.get(n.id);
           n.x = f[0] + (t[0] - f[0]) * k;
@@ -168,6 +236,9 @@
     fit(animate = true) {
       if (!this.nodes.length || !this.W) return;
       const xs = this.nodes.map(n => n.x), ys = this.nodes.map(n => n.y);
+      if (this.layout === 'shape' && this.shapeWorld) {
+        for (const p of this.shapeWorld.pts) { xs.push(p.x); ys.push(p.y); }
+      }
       const x0 = Math.min(...xs), x1 = Math.max(...xs), y0 = Math.min(...ys), y1 = Math.max(...ys);
       const pad = 70;
       const k = Math.max(0.05, Math.min(2, (this.W - pad * 2) / Math.max(1, x1 - x0), (this.H - pad * 2) / Math.max(1, y1 - y0)));
@@ -257,6 +328,27 @@
     }
 
     // ---------- drawing ----------
+    // The picture: colored strokes along the outline, dots for everything not holding a real node.
+    drawShape(k) {
+      const { ctx } = this;
+      const { pts, strokes, occupied, dot } = this.shapeWorld;
+      ctx.globalAlpha = 0.45 * this.shapeFade;
+      ctx.lineWidth = Math.max(0.6 / k, dot * 0.5);
+      for (const [a, b] of strokes) {
+        const p = pts[a], q = pts[b];
+        ctx.strokeStyle = p.color;
+        ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.lineTo(q.x, q.y); ctx.stroke();
+      }
+      for (let i = 0; i < pts.length; i++) {
+        if (occupied.has(i)) continue;
+        const p = pts[i];
+        ctx.globalAlpha = (p.edge ? 0.9 : 0.35) * this.shapeFade;
+        ctx.fillStyle = p.color;
+        ctx.beginPath(); ctx.arc(p.x, p.y, p.edge ? dot : dot * 0.8, 0, Math.PI * 2); ctx.fill();
+      }
+      ctx.globalAlpha = 1;
+    }
+
     draw() {
       if (!this.W) return;
       const { ctx } = this;
@@ -273,8 +365,11 @@
       const near = n => !focus || n === focus || focus.nbrs.has(n.id);
 
       // Links: dim ones first in one batch, highlighted ones on top.
+      const shaped = this.layout === 'shape' && this.shapeWorld;
+      if (shaped) this.drawShape(k);
+
       ctx.lineWidth = 1 / k;
-      ctx.strokeStyle = focus || q ? 'rgba(255,255,255,0.05)' : 'rgba(255,255,255,0.14)';
+      ctx.strokeStyle = focus || q || shaped ? 'rgba(255,255,255,0.06)' : 'rgba(255,255,255,0.14)';
       ctx.beginPath();
       const hot = [];
       for (const l of this.links) {
