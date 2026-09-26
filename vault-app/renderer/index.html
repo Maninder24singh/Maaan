@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:">
+  <title>Memory Vault</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="shell">
+    <aside class="sidebar">
+      <div class="brand">
+        <span class="brand-name">Memory Vault</span>
+        <span class="live" id="live" title="Watching Claude Code and OpenCode for new work"><span class="live-dot"></span><span id="live-text">Starting</span></span>
+      </div>
+      <input id="project-filter" class="field" type="search" placeholder="Filter projects" aria-label="Filter projects">
+      <nav class="tree" id="tree" aria-label="Projects"></nav>
+      <div class="sources" id="sources"></div>
+      <button class="link-btn" id="open-settings" type="button">Folders and permissions</button>
+    </aside>
+
+    <main class="stage">
+      <div class="toolbar">
+        <div class="crumbs" id="crumbs"></div>
+        <div class="tools">
+          <input id="node-search" class="field small" type="search" placeholder="Find in graph" aria-label="Find in graph">
+          <label class="check"><input id="show-files" type="checkbox" checked> Files</label>
+          <label class="check"><input id="show-notes" type="checkbox" checked> Notes</label>
+          <select id="layout" class="field small" aria-label="Layout">
+            <option value="force">Web</option>
+            <option value="rings">Rings</option>
+            <option value="tree">Tree</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="canvas-wrap" id="canvas-wrap">
+        <canvas id="graph"></canvas>
+        <ul class="legend" id="legend"></ul>
+        <div class="empty" id="empty" hidden></div>
+        <section class="card" id="card" hidden></section>
+        <div class="zoom" role="group" aria-label="Zoom">
+          <button type="button" id="zoom-in" title="Zoom in (+)">+</button>
+          <span id="zoom-level">100%</span>
+          <button type="button" id="zoom-out" title="Zoom out (-)">−</button>
+          <button type="button" id="zoom-fit" title="Fit everything (0)">Fit</button>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <div class="overlay" id="overlay" hidden>
+    <form class="dialog" id="consent" novalidate>
+      <h1>Before Memory Vault starts</h1>
+      <p>It needs your OK to look at these folders. Nothing is sent anywhere. Everything stays on this PC.</p>
+
+      <h2>Reads only (never changes)</h2>
+      <div class="pathrow">
+        <label for="claude-dir">Claude Code sessions</label>
+        <div class="pathline"><input id="claude-dir" class="field" type="text"><button type="button" data-pick="claude-dir" data-kind="dir">Change</button></div>
+        <span class="found" id="claude-dir-found"></span>
+      </div>
+      <div class="pathrow">
+        <label for="opencode-db">OpenCode database</label>
+        <div class="pathline"><input id="opencode-db" class="field" type="text"><button type="button" data-pick="opencode-db" data-kind="file">Change</button></div>
+        <span class="found" id="opencode-db-found"></span>
+      </div>
+
+      <h2>Writes</h2>
+      <div class="pathrow">
+        <label for="vault-dir">Vault folder</label>
+        <div class="pathline"><input id="vault-dir" class="field" type="text"><button type="button" data-pick="vault-dir" data-kind="dir">Change</button></div>
+        <span class="found" id="vault-dir-found"></span>
+      </div>
+      <label class="check big"><input id="write-notes" type="checkbox" checked> Write one Markdown note per session and project into the vault folder. Obsidian can open the same folder. Notes you write yourself are never changed.</label>
+
+      <div class="actions">
+        <button type="submit" class="primary" id="allow">Allow and start</button>
+        <button type="button" id="cancel-settings" hidden>Cancel</button>
+      </div>
+      <p class="msg" id="consent-msg" aria-live="polite"></p>
+    </form>
+  </div>
+
+  <script src="../node_modules/d3/dist/d3.min.js"></script>
+  <script src="graph.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

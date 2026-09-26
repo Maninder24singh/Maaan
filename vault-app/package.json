@@ -1,0 +1,37 @@
+{
+  "name": "memory-vault",
+  "productName": "Memory Vault",
+  "version": "0.1.0",
+  "description": "Obsidian-style graph of your Claude Code and OpenCode work. Runs fully offline.",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "test": "node --test test/*.test.js",
+    "dist": "npx electron-builder@26 --win nsis portable"
+  },
+  "license": "MIT",
+  "dependencies": {
+    "d3": "7.9.0"
+  },
+  "devDependencies": {
+    "electron": "44.4.5"
+  },
+  "build": {
+    "appId": "local.memoryvault.app",
+    "productName": "Memory Vault",
+    "files": [
+      "main.js",
+      "preload.js",
+      "lib/**",
+      "renderer/**",
+      "node_modules/d3/dist/d3.min.js",
+      "package.json"
+    ],
+    "win": {
+      "target": [
+        "nsis",
+        "portable"
+      ]
+    }
+  }
+}
