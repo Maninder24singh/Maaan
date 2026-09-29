@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self' data: blob:; worker-src 'self' blob:">
+  <title>Memory Vault</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="shell">
+    <aside class="sidebar" id="sidebar">
+      <div class="brand">
+        <span class="brand-mark" aria-hidden="true"></span>
+        <span class="brand-name">Memory Vault</span>
+        <span class="live" id="live" title="Watching Claude Code and OpenCode for new work"><span class="live-dot"></span><span id="live-text">Starting</span></span>
+      </div>
+
+      <div class="search-box">
+        <svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="7" cy="7" r="4.5" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="m10.5 10.5 3 3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+        <input id="project-filter" type="search" placeholder="Search projects" aria-label="Search projects">
+      </div>
+
+      <div class="side-actions">
+        <button type="button" class="side-btn primary" id="new-project">+ New project</button>
+        <button type="button" class="side-btn" id="add-files" title="Add .md files as notes or new projects">Add files</button>
+        <input type="file" id="add-files-input" accept=".md,.markdown,.txt" multiple hidden>
+      </div>
+
+      <div class="section-head">
+        <span>Projects</span>
+        <button type="button" class="sort-btn" id="sort-btn" title="Change order">Recent</button>
+      </div>
+      <nav class="tree" id="tree" aria-label="Projects"></nav>
+      <div class="drop-hint" id="drop-hint">Drop .md files or folders here to add projects</div>
+
+      <div class="section-head"><span>Connections</span></div>
+      <ul class="conns" id="conns"></ul>
+      <button class="link-btn" id="open-settings" type="button">Folders and permissions</button>
+    </aside>
+
+    <main class="stage">
+      <div class="toolbar">
+        <div class="crumbs" id="crumbs"></div>
+        <div class="tools">
+          <input id="node-search" class="field small" type="search" placeholder="Find in graph" aria-label="Find in graph">
+          <label class="check"><input id="show-files" type="checkbox" checked> Files</label>
+          <label class="check"><input id="show-notes" type="checkbox" checked> Notes</label>
+          <select id="layout" class="field small" aria-label="Layout">
+            <option value="force">Web</option>
+            <option value="rings">Rings</option>
+            <option value="tree">Tree</option>
+            <option value="shape">Shape (your image)</option>
+          </select>
+          <button type="button" class="field small btn" id="shape-pick" hidden>Change image…</button>
+          <button type="button" class="ask-btn" id="ask-toggle" aria-expanded="false">Ask AI</button>
+          <input type="file" id="shape-file" accept="image/png,image/jpeg,image/webp" hidden>
+        </div>
+      </div>
+
+      <div class="canvas-wrap" id="canvas-wrap">
+        <canvas id="graph"></canvas>
+        <ul class="legend" id="legend"></ul>
+        <div class="empty" id="empty" hidden></div>
+        <div class="busy" id="busy" role="status" hidden></div>
+        <section class="card" id="card" hidden></section>
+        <div class="drop-veil" id="drop-veil" hidden><div id="drop-veil-text">Drop to add</div></div>
+        <aside class="drawer" id="drawer" hidden aria-label="Ask your vault">
+          <div class="drawer-head">
+            <strong>Ask your vault</strong>
+            <span class="model-tag" id="model-tag"></span>
+            <button type="button" class="icon-btn" id="chat-reset" title="New chat">New</button>
+            <button type="button" class="icon-btn" id="drawer-close" aria-label="Close">×</button>
+          </div>
+          <div class="chat" id="chat" aria-live="polite"></div>
+          <form class="chat-form" id="chat-form">
+            <textarea id="chat-input" rows="2" placeholder="Try: open spotify · find my resume · what did I do on voice-agent?"></textarea>
+            <button type="submit" class="primary-sm" id="chat-send">Send</button>
+          </form>
+        </aside>
+        <div class="zoom" role="group" aria-label="Zoom">
+          <button type="button" id="zoom-in" title="Zoom in (+)">+</button>
+          <span id="zoom-level">100%</span>
+          <button type="button" id="zoom-out" title="Zoom out (-)">−</button>
+          <button type="button" id="zoom-fit" title="Fit everything (0)">Fit</button>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <div class="overlay" id="modal" hidden>
+    <div class="dialog" id="modal-body" role="dialog" aria-modal="true"></div>
+  </div>
+  <div class="toasts" id="toasts" aria-live="polite"></div>
+
+  <div class="overlay" id="overlay" hidden>
+    <form class="dialog" id="consent" novalidate>
+      <h1>Before Memory Vault starts</h1>
+      <p>It needs your OK to look at these folders. Nothing is sent anywhere. Everything stays on this PC.</p>
+
+      <h2>Reads only (never changes)</h2>
+      <div class="pathrow">
+        <label for="claude-dir">Claude Code sessions</label>
+        <div class="pathline"><input id="claude-dir" class="field" type="text"><button type="button" data-pick="claude-dir" data-kind="dir">Change</button></div>
+        <span class="found" id="claude-dir-found"></span>
+      </div>
+      <div class="pathrow">
+        <label for="opencode-db">OpenCode database</label>
+        <div class="pathline"><input id="opencode-db" class="field" type="text"><button type="button" data-pick="opencode-db" data-kind="file">Change</button></div>
+        <span class="found" id="opencode-db-found"></span>
+      </div>
+
+      <h2>Writes</h2>
+      <div class="pathrow">
+        <label for="vault-dir">Vault folder</label>
+        <div class="pathline"><input id="vault-dir" class="field" type="text"><button type="button" data-pick="vault-dir" data-kind="dir">Change</button></div>
+        <span class="found" id="vault-dir-found"></span>
+      </div>
+      <label class="check big"><input id="write-notes" type="checkbox" checked> Write one Markdown note per session and project into the vault folder. Obsidian can open the same folder. Notes you write yourself are never changed.</label>
+
+      <div class="actions">
+        <button type="submit" class="primary" id="allow">Allow and start</button>
+        <button type="button" id="cancel-settings" hidden>Cancel</button>
+      </div>
+      <p class="msg" id="consent-msg" aria-live="polite"></p>
+    </form>
+  </div>
+
+  <script src="../node_modules/d3/dist/d3.min.js"></script>
+  <script src="../node_modules/@mediapipe/selfie_segmentation/selfie_segmentation.js"></script>
+  <script src="shape.js"></script>
+  <script src="graph.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
