@@ -45,7 +45,7 @@ Everything runs offline on the laptop.
 Windows. Node v24.18.1, npm 11.16.0, Git 2.55.
 
 **Install status on the laptop:** cloned, `npm install` done, Electron v44.4.5 present,
-`npm test` passes 11/11, first-run permission done, photo shape set, desktop shortcut works.
+`npm test` passed 11/11 at install time (14 now, after the clipboard fix), first-run permission done, photo shape set, desktop shortcut works.
 **Not yet set up:** browser extension, clipboard key, local AI (Ollama).
 
 **To update after new commits:**
@@ -208,7 +208,9 @@ folder: Windows Terminal (`wt.exe -d <dir> cmd /k claude`) or `cmd start`; Termi
 
 ### Clipboard key
 `CommandOrControl+Shift+M` (Ctrl on Windows, Cmd on Mac) saves the current clipboard text or URL
-to `Inbox/clips/`. The clipboard is read only when the key is pressed.
+to `Inbox/clips/`. The clipboard is read only when the key is pressed. The Clipboard key window
+also has a **Save my clipboard now (test)** button. **Electron 44's clipboard API is async**
+(`readText()`/`writeText()` return Promises), so always `await` them.
 
 ### Local AI (Ollama)
 - `lib/ai.js` talks to `http://127.0.0.1:11434` (`/api/tags`, `/api/chat` with tools,
@@ -247,7 +249,7 @@ vault-app/
   renderer/graph.js    canvas graph, zoom/pan, layouts, shape drawing + cache
   renderer/shape.js    photo → dots
   browser-extension/   MV3 extension (manifest, background, popup, shared)
-  test/*.test.js       node:test unit tests (11)
+  test/*.test.js       node:test unit tests (14)
   README.md            user guide
 ```
 
@@ -260,10 +262,11 @@ vault-app/
 `clipper{enabled,port,token}`, `hotkey{enabled,accel}`, `ai{enabled,url,model,summarizeImports}`.
 The env var `MEMORY_VAULT_USER_DATA` overrides the settings folder (used by tests).
 
-**Tests:** `npm test` runs 11 tests. They cover the transcript parser (including half-written
+**Tests:** `npm test` runs 14 tests. They cover the transcript parser (including half-written
 lines), OpenCode tool parts, project nesting, vault writing and the never-overwrite rule, markdown
-and folder analysis, drag-drop import, the clipper (key, 403 for websites, CORS), and the assistant
-(with a fake Ollama: a made-up path is refused, and search results can be opened).
+and folder analysis, drag-drop import, the clipper (key, 403 for websites, CORS), the assistant
+(with a fake Ollama: a made-up path is refused, and search results can be opened), and the clipboard
+key (with a fake Electron whose clipboard returns Promises, like Electron 44).
 
 ---
 

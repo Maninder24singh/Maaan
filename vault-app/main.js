@@ -140,7 +140,11 @@ app.whenReady().then(() => {
   handle('vault:ask', text => features.ask(text));
   handle('vault:approve', id => features.approve(id));
   handle('vault:reset-chat', () => features.resetChat());
-  handle('vault:copy', text => { require('electron').clipboard.writeText(String(text)); return true; });
+  handle('vault:copy', async text => { await require('electron').clipboard.writeText(String(text)); return true; });
+  handle('vault:save-clipboard', async () => {
+    const saved = await features.saveClipboard();
+    return saved ? { file: saved.file } : null;
+  });
   handle('vault:show-extension', () => { shell.openPath(extensionDir()); return extensionDir(); });
 
   ipcMain.handle('vault:init', () => ({ ...describe(settings), data: settings.consented ? (lastData || startEngine()) : null }));

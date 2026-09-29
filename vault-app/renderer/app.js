@@ -609,8 +609,13 @@
         <li>Reads your clipboard only at the moment you press it. Never in the background.</li>
       </ul>
       ${c.enabled && !c.registered ? '<p class="warn">Another app already uses Ctrl+Shift+M, so this key could not be added.</p>' : ''}
-      <div class="actions">${c.enabled ? '<button type="button" data-off>Turn off</button>' : '<button type="button" class="primary" data-on>Turn on</button><button type="button" data-close>Not now</button>'}</div>`,
+      <div class="actions">${c.enabled ? '<button type="button" class="primary" data-test>Save my clipboard now (test)</button><button type="button" data-off>Turn off</button>' : '<button type="button" class="primary" data-on>Turn on</button><button type="button" data-close>Not now</button>'}</div>`,
     async e => {
+      if (e.target.closest('[data-test]')) {
+        const r = await window.vault.saveClipboard();
+        if (!r.ok) toast(r.error, true);
+        else if (r.value) { toast('Saved to Inbox'); closeModal(); }
+      }
       if (e.target.closest('[data-on]')) { await setFeature('hotkey', { enabled: true }); closeModal(); toast(conn.hotkey.registered ? 'Ctrl+Shift+M now saves your clipboard' : 'That key is taken by another app', !conn.hotkey.registered); }
       if (e.target.closest('[data-off]')) { await setFeature('hotkey', { enabled: false }); closeModal(); }
     });

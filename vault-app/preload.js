@@ -20,6 +20,7 @@ contextBridge.exposeInMainWorld('vault', {
   approve: id => ipcRenderer.invoke('vault:approve', id),
   resetChat: () => ipcRenderer.invoke('vault:reset-chat'),
   copy: text => ipcRenderer.invoke('vault:copy', text),
+  saveClipboard: () => ipcRenderer.invoke('vault:save-clipboard'),
   showExtension: () => ipcRenderer.invoke('vault:show-extension'),
   onToast: fn => {
     const h = (_e, t) => fn(t);

@@ -106,9 +106,10 @@ function createFeatures({ getSettings, saveSettings, getEngine, getData, refresh
   }
 
   // ---------- clipboard hotkey ----------
-  function saveClipboard() {
-    const text = clipboard.readText().trim();
-    if (!text) { toast('Clipboard is empty. Copy something first.'); return; }
+  // Electron 44 made clipboard.readText() return a Promise, so it has to be awaited.
+  async function saveClipboard() {
+    const text = String((await clipboard.readText()) || '').trim();
+    if (!text) { toast('Clipboard is empty. Copy something first.'); return null; }
     const isUrl = /^https?:\/\/\S+$/i.test(text);
     const title = isUrl ? text.replace(/^https?:\/\//, '').slice(0, 80) : text.split(/\r?\n/)[0].slice(0, 80);
     const saved = vault().saveClip({ title, url: isUrl ? text : null, text: isUrl ? '' : text, rel: null });
@@ -120,7 +121,7 @@ function createFeatures({ getSettings, saveSettings, getEngine, getData, refresh
   function applyHotkey() {
     const s = settings();
     if (hotkeyRegistered) { globalShortcut.unregister(s.hotkey.accel); hotkeyRegistered = false; }
-    if (s.hotkey.enabled) hotkeyRegistered = globalShortcut.register(s.hotkey.accel, () => { try { saveClipboard(); } catch (e) { toast(e.message); } });
+    if (s.hotkey.enabled) hotkeyRegistered = globalShortcut.register(s.hotkey.accel, () => { saveClipboard().catch(e => toast(e.message)); });
   }
 
   // ---------- local AI ----------
