@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Menu | Shudh Vaishnu Dhaba</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  /* ====== CHANGE THESE 8 LINES TO MATCH YOUR SITE THEME ====== */
+  :root {
+    --bg:        #fbf5e9;   /* page background (cream) */
+    --card:      #fffdf8;   /* card background */
+    --ink:       #2a1a14;   /* main text */
+    --muted:     #7a6a5f;   /* small text */
+    --primary:   #a4161a;   /* deep red: headings, prices */
+    --accent:    #e9a825;   /* saffron/gold: lines, highlights */
+    --dark:      #1d1310;   /* dark bands */
+    --font-head: 'Playfair Display', Georgia, serif;
+    --font-body: 'Poppins', system-ui, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body { margin:0; background:var(--bg); color:var(--ink); font-family:var(--font-body); line-height:1.5; }
+
+  /* ---- Hero ---- */
+  .menu-hero { background:var(--dark); color:#fff; text-align:center; padding:56px 16px 44px;
+    background-image:radial-gradient(circle at 50% 0, rgba(233,168,37,.18), transparent 60%); }
+  .menu-hero small { letter-spacing:.35em; color:var(--accent); font-size:12px; text-transform:uppercase; }
+  .menu-hero h1 { font-family:var(--font-head); font-size:clamp(34px,6vw,56px); margin:10px 0 8px; }
+  .menu-hero p { margin:0 auto; max-width:520px; color:#d8cbc2; }
+  .ghee { display:inline-block; margin-top:18px; border:1px solid var(--accent); color:var(--accent);
+    padding:6px 16px; border-radius:99px; font-size:13px; letter-spacing:.08em; }
+
+  /* ---- Sticky category bar + search ---- */
+  .bar { position:sticky; top:0; z-index:10; background:rgba(251,245,233,.95); backdrop-filter:blur(6px);
+    border-bottom:1px solid #eadfca; }
+  .bar-in { max-width:1100px; margin:auto; padding:10px 16px; display:flex; gap:12px; align-items:center; }
+  .chips { display:flex; gap:8px; overflow-x:auto; flex:1; scrollbar-width:none; }
+  .chips::-webkit-scrollbar { display:none; }
+  .chip { white-space:nowrap; border:1px solid #e3d5b8; background:var(--card); color:var(--ink);
+    padding:7px 14px; border-radius:99px; font:500 13px var(--font-body); cursor:pointer; text-decoration:none; transition:.2s; }
+  .chip:hover { border-color:var(--primary); }
+  .chip.active { background:var(--primary); border-color:var(--primary); color:#fff; }
+  #search { width:170px; padding:8px 14px; border:1px solid #e3d5b8; border-radius:99px; background:var(--card);
+    font:14px var(--font-body); color:var(--ink); }
+  #search:focus { outline:2px solid var(--accent); border-color:transparent; }
+
+  /* ---- Sections ---- */
+  main { max-width:1100px; margin:auto; padding:8px 16px 60px; }
+  section { padding-top:44px; scroll-margin-top:64px; }
+  .sec-head { display:flex; align-items:center; gap:14px; margin-bottom:18px; }
+  .sec-head h2 { font-family:var(--font-head); color:var(--primary); font-size:clamp(24px,4vw,32px); margin:0; white-space:nowrap; }
+  .sec-head::after { content:""; flex:1; height:2px; background:linear-gradient(90deg,var(--accent),transparent); }
+  .grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(320px,1fr)); gap:12px 20px; }
+  .item { background:var(--card); border:1px solid #efe3c9; border-radius:12px; padding:12px 16px;
+    display:flex; align-items:baseline; gap:8px; transition:.2s; }
+  .item:hover { transform:translateY(-2px); box-shadow:0 8px 20px rgba(120,60,20,.10); border-color:var(--accent); }
+  .name { font-weight:500; }
+  .name em { display:block; font-style:normal; color:var(--muted); font-size:12.5px; font-weight:400; }
+  .dots { flex:1; border-bottom:2px dotted #d9c9a6; transform:translateY(-4px); min-width:12px; }
+  .price { font-weight:600; color:var(--primary); white-space:nowrap; }
+  .item.hide { display:none; }
+
+  /* ---- Platter banners ---- */
+  .platter { margin-top:22px; background:linear-gradient(120deg,var(--primary),#7d0f13); color:#fff; border-radius:16px;
+    padding:20px 24px; display:flex; justify-content:space-between; align-items:center; gap:16px; flex-wrap:wrap;
+    border:2px solid var(--accent); }
+  .platter h3 { font-family:var(--font-head); margin:0 0 4px; font-size:24px; letter-spacing:.04em; }
+  .platter p { margin:0; font-size:13.5px; color:#ffe9c9; max-width:560px; }
+  .platter .big { font-family:var(--font-head); font-size:34px; color:var(--accent); }
+
+  #empty { display:none; text-align:center; color:var(--muted); padding:50px 0; }
+  footer { background:var(--dark); color:#bfb1a7; text-align:center; padding:22px 16px; font-size:13px; }
+  @media (max-width:560px) { #search { width:110px; } .grid { grid-template-columns:1fr; } }
+</style>
+</head>
+<body>
+
+<header class="menu-hero">
+  <small>Shudh Vaishnu Dhaba</small>
+  <h1>Our Menu</h1>
+  <p>Pure vegetarian Punjabi food, cooked fresh with love.</p>
+  <span class="ghee">🪔 All food prepared in desi ghee</span>
+</header>
+
+<div class="bar"><div class="bar-in">
+  <nav class="chips" id="chips"></nav>
+  <input id="search" type="search" placeholder="Search dish…" aria-label="Search menu">
+</div></div>
+
+<main id="menu"></main>
+<p id="empty">No dish found. Try another word.</p>
+<footer>Prices in USD. Menu and prices can change.</footer>
+
+<script>
+/* ====== MENU DATA — edit dishes and prices here ====== */
+const MENU = [
+ {id:'breakfast', title:'Breakfast', items:[
+  ['Tandoori Paratha With White Makhni',6.99],['Amritsari Kulcha',13.99],['Paratha (Aloo)',3.99],
+  ['Paratha (Gobi / Onion / Mix)',4.99],['Paratha Thali',12.99],['Paneer Paratha',5.99],
+  ['Chole Bhature',8.99],['Samosa Chole',8.99]]},
+ {id:'appetizer', title:'Appetizer', items:[
+  ['Paneer Pakora',12.99],['Bread Pakora','4 pcs',6.99],['Samosa',1.49],['Pocket Kulche',6.99],
+  ['Spring Roll with Noodle','Indian style',10.99],['Frankie Roll',6.99],['Noodle Samosa',2.99]]},
+ {id:'main', title:'Main Course', items:[
+  ['Dal Fry',13.99],['Dal Makhni',13.99],['Shahi Paneer',16.99],['Kadai Paneer',16.99],['Palak Paneer',16.99],
+  ['Cheese Tomato',16.99],['Mix Veg',15.99],['Kadai Chaap Gravy',16.99],['Fresh Eggplant Bharta',15.99],
+  ['Rajma',12.99],['Amritsari Chane',12.99],['Punjabi Thali',12.99],['Fresh Bhindi Masala',16.99]]},
+ {id:'special', title:'Special Foods', items:[
+  ['Rajma Chawal',9.99],['Curry Chawal',9.99],['Cholay / Dal Chawal',9.99],
+  ['Makki Di Roti Sarson Ka Saag',16.99],['Veg Maggi',5.99],['Paneer Maggi',7.99]]},
+ {id:'street', title:'Indian Street Food', items:[
+  ['Veg Chowmein',14.99],['Veg Manchurian',14.99],['Veg Manchurian Dry',16.99],['Pav Bhaji',10.99],
+  ['Cheese Chilli',16.99],['Vada Pav',8.99]]},
+ {id:'hargar', title:'Har Ghar Special', items:[
+  ['Gol Gappe','8 pcs',9.99],['Dahi Gol Gappe','6 pcs',10.99],['Tikki Chole','2 pcs tikki with chole',9.99],
+  ['Dahi Bhalle',9.99],['Chaat Papdi',9.99]],
+  platter:{name:'Desi Vibes Platter',price:17.99,
+   desc:'Pakora · Samosa (1 pc) · Bread Pakora (1 pc) · Bread Cutlet · 2 types of chutney · Paneer Pakora (2 pc)'}},
+ {id:'burger', title:'Burger & Fries', items:[
+  ['Noodle Burger with Aloo Tikki','Desi ghee wala',6.99],['Paneer Burger',9.99],
+  ['Maharaja Burger','Double aloo tikki',10.99],['Fries','Desi ghee wala',4.99],['Butter Popcorn',4.99]]},
+ {id:'breads', title:'Breads', items:[
+  ['Tawa Roti',1.99],['Tandoori Roti',1.99],['Plain Naan',2.99],['Garlic Naan',4.49],['Butter Naan',4.99],['Lacha Paratha',4.99]]},
+ {id:'pasta', title:'Pasta', items:[['Red Sauce Pasta',12.99],['White Sauce Pasta',12.99]]},
+ {id:'momos', title:'Momos & Chaap Corner', items:[
+  ['Veg Fried Momos',13.99],['Paneer Fried Momos',13.99],['Malai Chaap',14.99],['Masala Chaap',14.99],['Kadai Chaap',14.99]]},
+ {id:'drinks', title:'Drinks', items:[
+  ['Pop',1.99],['Masala Tea',1.99],['Ginger Tea',0.99],['Hot Coffee','Indian style',5.99],['Cold Coffee',5.99],
+  ['Lassi','Mithi / Namkeen',5.99],['Mango Shake',5.99],['Fresh Juice',6.99],['Lemon Sakanjvi',3.99]]},
+ {id:'sides', title:'Sides', items:[
+  ['Raita','Boondi / Veg',6.99],['Salad',6.99],['Extra Bhatura / Pav',2.49],['Curd',5.99]]},
+ {id:'dessert', title:'Dessert', items:[
+  ['Gulab Jamun','2 pcs',5.99],['Kheer with Dry Fruit',6.99],['Ras Malai',6.99],['Ice Cream',5.99],
+  ['Gulab Jamun With Ice Cream',6.99],['Pastry',5.99]],
+  platter:{name:'Chinese Platter',price:17.99,desc:'Noodles · Spring Roll (4 pc) · Manchurian · Fries · Chaap'}},
+];
+
+const menu = document.getElementById('menu'), chips = document.getElementById('chips');
+const money = n => '$' + n.toFixed(2);
+
+MENU.forEach(cat => {
+  const sec = document.createElement('section'); sec.id = cat.id;
+  sec.innerHTML = `<div class="sec-head"><h2>${cat.title}</h2></div><div class="grid">` +
+    cat.items.map(i => {
+      const [n, note, p] = i.length === 3 ? i : [i[0], '', i[1]];
+      return `<div class="item"><span class="name">${n}${note ? `<em>${note}</em>` : ''}</span>
+              <span class="dots"></span><span class="price">${money(p)}</span></div>`;
+    }).join('') + `</div>` +
+    (cat.platter ? `<div class="platter"><div><h3>${cat.platter.name}</h3><p>${cat.platter.desc}</p></div>
+       <div class="big">${money(cat.platter.price)}</div></div>` : '');
+  menu.appendChild(sec);
+  const a = document.createElement('a'); a.className = 'chip'; a.href = '#' + cat.id; a.textContent = cat.title;
+  chips.appendChild(a);
+});
+
+/* highlight chip of the section you are reading */
+const chipEls = [...chips.children];
+const io = new IntersectionObserver(es => es.forEach(e => {
+  if (e.isIntersecting) {
+    chipEls.forEach(c => c.classList.toggle('active', c.getAttribute('href') === '#' + e.target.id));
+    chipEls.find(c => c.classList.contains('active'))?.scrollIntoView({inline:'center', block:'nearest'});
+  }
+}), {rootMargin:'-30% 0px -60% 0px'});
+document.querySelectorAll('section').forEach(s => io.observe(s));
+
+/* search */
+document.getElementById('search').addEventListener('input', e => {
+  const q = e.target.value.trim().toLowerCase(); let any = false;
+  document.querySelectorAll('section').forEach(sec => {
+    let shown = 0;
+    sec.querySelectorAll('.item').forEach(it => {
+      const ok = !q || it.textContent.toLowerCase().includes(q);
+      it.classList.toggle('hide', !ok); if (ok) shown++;
+    });
+    sec.style.display = shown ? '' : 'none'; if (shown) any = true;
+  });
+  document.getElementById('empty').style.display = any ? 'none' : 'block';
+});
+</script>
+</body>
+</html>
