@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Nova Activity Box Demo</title>
+<style>
+  :root { --bg:#12141a; --panel:#1b1e27; --line:#2c303c; --text:#e6e8ee; --dim:#8b91a3; --green:#4ade80; --red:#f87171; --blue:#60a5fa; --accent:#a78bfa; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--text); font:15px/1.5 system-ui,sans-serif; display:flex; justify-content:center; padding:24px 16px; }
+  .chat { width:100%; max-width:720px; display:flex; flex-direction:column; gap:14px; }
+  .bubble { padding:10px 14px; border-radius:12px; max-width:85%; }
+  .user { align-self:flex-end; background:#2b3350; }
+  .nova { align-self:flex-start; background:var(--panel); border:1px solid var(--line); }
+  button.run { align-self:center; background:var(--accent); color:#111; border:0; border-radius:8px; padding:8px 18px; font-weight:600; cursor:pointer; }
+
+  /* ---- the activity box ---- */
+  .activity { border:1px solid var(--line); border-radius:10px; background:var(--panel); overflow:hidden; width:100%; }
+  .activity-head { display:flex; align-items:center; gap:8px; padding:9px 12px; cursor:default; user-select:none; }
+  .activity.done .activity-head { cursor:pointer; }
+  .activity.done .activity-head:hover { background:#222634; }
+  .spinner { width:12px; height:12px; border:2px solid var(--line); border-top-color:var(--accent); border-radius:50%; animation:spin .8s linear infinite; }
+  .activity.done .spinner { display:none; }
+  .check { display:none; color:var(--green); }
+  .activity.done .check { display:inline; }
+  .title { flex:1; font-weight:600; }
+  .count { color:var(--dim); font-size:13px; }
+  .arrow { display:none; color:var(--dim); transition:transform .2s; }
+  .activity.done .arrow { display:inline; }
+  .activity.done.open .arrow { transform:rotate(180deg); }
+
+  .activity-body { border-top:1px solid var(--line); font:13px/1.55 ui-monospace,Consolas,monospace; max-height:260px; overflow-y:auto; padding:8px 12px; }
+  .activity.done:not(.open) .activity-body { display:none; }   /* hidden after finish */
+  .line { padding:2px 0; white-space:pre-wrap; animation:fade .25s ease; }
+  .line .tag { display:inline-block; min-width:64px; color:var(--blue); }
+  .line .tag.edit { color:var(--accent); } .line .tag.run { color:var(--green); }
+  .add { color:var(--green); } .del { color:var(--red); }
+  .file { color:var(--dim); }
+  @keyframes spin { to { transform:rotate(360deg); } }
+  @keyframes fade { from { opacity:0; transform:translateY(3px); } }
+</style>
+</head>
+<body>
+<div class="chat" id="chat">
+  <div class="bubble user">Nova, add a dark mode toggle to my page.</div>
+  <button class="run" id="run">▶ Replay demo</button>
+</div>
+
+<script>
+const steps = [
+  ['read',  'Reading <span class="file">index.html</span>'],
+  ['edit',  'Editing <span class="file">index.html</span>'],
+  ['diff',  '<span class="del">- body { background:#f4f4f4; }</span>'],
+  ['diff',  '<span class="add">+ body { background:var(--bg); }</span>'],
+  ['diff',  '<span class="add">+ :root.dark { --bg:#12141a; }</span>'],
+  ['create','Creating <span class="file">theme.js</span>'],
+  ['diff',  '<span class="add">+ toggle.onclick = () => document.documentElement.classList.toggle("dark");</span>'],
+  ['run',   'Running <span class="file">npx html-validate index.html</span>'],
+  ['run',   '✓ No errors'],
+];
+const chat = document.getElementById('chat');
+const btn  = document.getElementById('run');
+
+function start() {
+  btn.disabled = true;
+  const wrap = document.createElement('div');
+  wrap.className = 'activity';
+  wrap.innerHTML = `
+    <div class="activity-head">
+      <span class="spinner"></span><span class="check">✓</span>
+      <span class="title">Nova is working…</span>
+      <span class="count"></span><span class="arrow">▾</span>
+    </div>
+    <div class="activity-body"></div>`;
+  chat.insertBefore(wrap, btn);
+  const head = wrap.querySelector('.activity-head'),
+        body = wrap.querySelector('.activity-body'),
+        title = wrap.querySelector('.title'),
+        count = wrap.querySelector('.count');
+
+  // click header to expand/collapse (only works after finish)
+  head.onclick = () => { if (wrap.classList.contains('done')) wrap.classList.toggle('open'); };
+
+  let i = 0;
+  const timer = setInterval(() => {
+    if (i < steps.length) {                       // LIVE: show each step as it happens
+      const [type, html] = steps[i++];
+      const d = document.createElement('div');
+      d.className = 'line';
+      d.innerHTML = type === 'diff' ? html
+        : `<span class="tag ${type==='edit'||type==='create'?'edit':type}">${type}</span>${html}`;
+      body.appendChild(d);
+      body.scrollTop = body.scrollHeight;
+      count.textContent = i + ' steps';
+    } else {                                      // FINISHED: collapse behind the arrow
+      clearInterval(timer);
+      wrap.classList.add('done');
+      title.textContent = 'Edited 2 files · ran 1 check';
+      setTimeout(() => {
+        const r = document.createElement('div');
+        r.className = 'bubble nova';
+        r.textContent = 'Done. Dark mode toggle added. Click the box above to see what I changed.';
+        chat.insertBefore(r, btn);
+        btn.disabled = false;
+      }, 300);
+    }
+  }, 700);
+}
+btn.onclick = () => {
+  chat.querySelectorAll('.activity, .bubble.nova').forEach(e => e.remove());
+  start();
+};
+start();
+</script>
+</body>
+</html>
