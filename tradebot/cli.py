@@ -6,8 +6,8 @@ from pathlib import Path
 import pandas as pd
 
 from . import backtest as bt
-from . import copytrade, data
-from .engine import Engine
+from . import copytrade, data, settings
+from .engine import Engine, Risk
 from .portfolio import Portfolio
 from .strategy import Params, prepare
 
@@ -22,27 +22,29 @@ def cmd_backtest(a):
         print("!! SYNTHETIC fake prices: this only tests the code. Results mean nothing about real markets.")
     else:
         frames = {s: data.fetch_history(s, a.interval, a.days, a.refresh) for s in a.symbols}
+    cfg = settings.load()
+    cash = a.cash or cfg["cash"]
     n = min(len(f) for f in frames.values())
     cut = int(n * (1 - a.oos))
     parts = {"IN-SAMPLE (tune here)": {s: f.iloc[:cut] for s, f in frames.items()}}
     if a.oos > 0:
         parts["OUT-OF-SAMPLE (never tuned on - the one that matters)"] = {s: f.iloc[cut - 250:] for s, f in frames.items()}
     for name, fr in parts.items():
-        pf, eq, hold = bt.run(fr, cash=a.cash)
+        pf, eq, hold = bt.run(fr, cfg["params"], cfg["risk"], cash, cfg["fee"], cfg["slip"])
         print(f"\n== {name}: {eq.index[0]:%Y-%m-%d} -> {eq.index[-1]:%Y-%m-%d}")
-        for k, v in bt.metrics(pf, eq, hold, a.interval, a.cash).items():
+        for k, v in bt.metrics(pf, eq, hold, a.interval, cash).items():
             print(f"  {k:16} {v}")
 
 
-def _load_paper(cash):
+def _load_paper(cfg, cash):
     if STATE.exists():
         pf, raw = Portfolio.load(STATE)
         return pf, raw.get("last_ts", {})
-    return Portfolio(cash=cash), {}
+    return Portfolio(cash=cash or cfg["cash"], fee=cfg["fee"], slip=cfg["slip"]), {}
 
 
-def paper_step(pf, last_ts, symbols, interval, p=Params()):
-    eng = Engine(pf, p)
+def paper_step(pf, last_ts, symbols, interval, p=Params(), risk=Risk()):
+    eng = Engine(pf, p, risk)
     feeds = {}
     for s in symbols:
         closed, now_px = data.fetch_recent(s, interval)
@@ -62,10 +64,11 @@ def paper_step(pf, last_ts, symbols, interval, p=Params()):
 
 
 def cmd_paper(a):
-    pf, last_ts = _load_paper(a.cash)
+    cfg = settings.load()
+    pf, last_ts = _load_paper(cfg, a.cash)
     while True:
         try:
-            px = paper_step(pf, last_ts, a.symbols, a.interval)
+            px = paper_step(pf, last_ts, a.symbols, a.interval, cfg["params"], cfg["risk"])
             pf.save(STATE, {"last_ts": last_ts})
             print(f"{pd.Timestamp.now(tz='UTC'):%F %T} equity ${pf.equity(px):,.2f} cash ${pf.cash:,.2f} open={list(pf.positions)} trades={len(pf.trades)}")
         except Exception as e:  # network hiccup must not kill the loop
@@ -96,7 +99,7 @@ def cmd_copy_scan(a):
 
 
 def cmd_copy_paper(a):
-    pf = Portfolio.load(COPY_STATE)[0] if COPY_STATE.exists() else Portfolio(cash=a.cash)
+    pf = Portfolio.load(COPY_STATE)[0] if COPY_STATE.exists() else Portfolio(cash=a.cash or settings.load()["cash"])
     while True:
         try:
             cons = copytrade.consensus(copytrade.pick_wallets(top=a.top))
@@ -125,7 +128,7 @@ def main():
     def common(p):
         p.add_argument("--symbols", nargs="+", default=DEFAULT)
         p.add_argument("--interval", default="4h", choices=list(data.MS))
-        p.add_argument("--cash", type=float, default=10_000.0)
+        p.add_argument("--cash", type=float, default=None, help="default: settings.json or 10000")
 
     b = sub.add_parser("backtest", help="test the strategy on past data")
     common(b)
@@ -150,7 +153,7 @@ def main():
 
     cp = sub.add_parser("copy-paper", help="paper-copy what the crowd of good wallets is long")
     cp.add_argument("--top", type=int, default=15)
-    cp.add_argument("--cash", type=float, default=10_000.0)
+    cp.add_argument("--cash", type=float, default=None, help="default: settings.json or 10000")
     cp.add_argument("--poll", type=int, default=600)
     cp.add_argument("--once", action="store_true")
     cp.set_defaults(fn=cmd_copy_paper)

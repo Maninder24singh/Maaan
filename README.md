@@ -31,6 +31,11 @@ Sell when EMA20 drops below EMA50 or a trailing stop (3x ATR) is hit.
 Risk: 1% of account per trade, max 33% of account per coin. Costs: 0.1% fee + 0.05% slippage per side.
 Signals use the closed candle; fills happen at the next candle open (no peeking at the future).
 
+## Edit the settings visually
+Open Tradebot Lab (https://claude.ai/artifact/LfKUFa63HdVnBymoan4kuA), move the sliders, press **Copy settings**,
+save the text as `settings.json` in the repo folder. `backtest`, `paper` and `copy-paper` read it automatically.
+Delete the file to go back to the defaults.
+
 ## Rule before any real money
 Paper-trade for at least 4–8 weeks AND the out-of-sample backtest must beat buy-and-hold on drawdown or return.
 If it can't, do not go live. The bot has no live-trading code on purpose.

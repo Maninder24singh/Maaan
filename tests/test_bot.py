@@ -61,3 +61,13 @@ def test_paper_step_enters_on_new_signal(monkeypatch):
     pf = Portfolio(cash=10_000)
     cli.paper_step(pf, last_ts, ["A"], "4h")
     assert "A" in pf.positions and last_ts["A"] == str(k)
+
+
+def test_settings_json_overrides(tmp_path):
+    from tradebot import settings
+    f = tmp_path / "s.json"
+    f.write_text('{"fast": 10, "stop_atr": 1.5, "risk_per_trade": 0.02, "fee": 0.002, "cash": 5000}')
+    c = settings.load(f)
+    assert c["params"].fast == 10 and c["params"].slow == 50 and c["params"].stop_atr == 1.5
+    assert c["risk"].risk_per_trade == 0.02 and c["fee"] == 0.002 and c["cash"] == 5000
+    assert settings.load(tmp_path / "missing.json")["params"] == Params()
