@@ -6,7 +6,7 @@ from pathlib import Path
 import pandas as pd
 
 from . import backtest as bt
-from . import copytrade, data, settings
+from . import agents, copytrade, data, settings
 from .engine import Engine, Risk
 from .portfolio import Portfolio
 from .strategy import Params, prepare
@@ -43,13 +43,14 @@ def _load_paper(cfg, cash):
     return Portfolio(cash=cash or cfg["cash"], fee=cfg["fee"], slip=cfg["slip"]), {}
 
 
-def paper_step(pf, last_ts, symbols, interval, p=Params(), risk=Risk()):
+def paper_step(pf, last_ts, symbols, interval, p=Params(), risk=Risk(), gate=None):
     eng = Engine(pf, p, risk)
     feeds = {}
     for s in symbols:
         closed, now_px = data.fetch_recent(s, interval)
         feeds[s] = (prepare(closed, p), now_px)
         eng.last_price[s] = now_px
+    buys_ok = gate(pf, eng.last_price) if gate else True
     for s, (d, now_px) in feeds.items():
         seen = pd.Timestamp(last_ts[s]) if s in last_ts else d.index[-1]  # first run: don't trade on old candles
         new = d[d.index > seen]
@@ -58,9 +59,21 @@ def paper_step(pf, last_ts, symbols, interval, p=Params(), risk=Risk()):
             eng.on_close(s, row["close"], row["atr"])
         eng.last_price[s] = now_px
         if len(new):
-            eng.on_open(s, pd.Timestamp.now(tz="UTC"), now_px, d.iloc[-1])
+            sig = d.iloc[-1].copy()
+            sig["entry"] = bool(sig["entry"]) and buys_ok  # helpers may veto buys, never add them
+            eng.on_open(s, pd.Timestamp.now(tz="UTC"), now_px, sig)
         last_ts[s] = str(d.index[-1])
     return eng.last_price
+
+
+def _gate(pf, prices):
+    if not agents.allow_entries():
+        print("  buys paused: today's brief says risk is HIGH")
+        return False
+    r = agents.risk_check(pf, prices)
+    if r["pause_buys"]:
+        print("  buys paused:", "; ".join(r["flags"]))
+    return not r["pause_buys"]
 
 
 def cmd_paper(a):
@@ -68,7 +81,7 @@ def cmd_paper(a):
     pf, last_ts = _load_paper(cfg, a.cash)
     while True:
         try:
-            px = paper_step(pf, last_ts, a.symbols, a.interval, cfg["params"], cfg["risk"])
+            px = paper_step(pf, last_ts, a.symbols, a.interval, cfg["params"], cfg["risk"], gate=_gate)
             pf.save(STATE, {"last_ts": last_ts})
             print(f"{pd.Timestamp.now(tz='UTC'):%F %T} equity ${pf.equity(px):,.2f} cash ${pf.cash:,.2f} open={list(pf.positions)} trades={len(pf.trades)}")
         except Exception as e:  # network hiccup must not kill the loop
@@ -76,6 +89,37 @@ def cmd_paper(a):
         if a.once:
             break
         time.sleep(a.poll)
+
+
+def cmd_brief(a):
+    b = agents.market_brief(symbols=a.symbols)
+    print(f"risk: {b['risk']}   bias: {b['bias']}\n{b['summary']}")
+    for w in b["watch"]:
+        print(" -", w)
+    print("(saved to state/brief.json. If risk is high, `paper` will not open new buys.)")
+
+
+def cmd_deals(a):
+    setups, text = agents.deal_seeker()
+    for x in setups:
+        print(f"  {x['symbol']:9} price {x['price']}  RSI {x['rsi']:.0f}  {x['pullback_pct']}% from fast average")
+    print(text)
+
+
+def cmd_risk(a):
+    pf, _ = _load_paper(settings.load(), None)
+    px = {s: data.fetch_recent(s, "4h")[1] for s in pf.positions}
+    r = agents.risk_check(pf, px)
+    print(r)
+    print("OK" if not r["flags"] else "WARNING: " + "; ".join(r["flags"]))
+
+
+def cmd_chat(a):
+    pf, _ = _load_paper(settings.load(), None)
+    px = {s: data.fetch_recent(s, "4h")[1] for s in pf.positions}
+    print("Ask about your fake account. Empty line to quit.")
+    while (q := input("you> ").strip()):
+        print("bot>", agents.chat(q, pf, px))
 
 
 def cmd_status(a):
@@ -146,6 +190,13 @@ def main():
 
     s = sub.add_parser("status", help="show paper accounts")
     s.set_defaults(fn=cmd_status)
+
+    br = sub.add_parser("brief", help="LLM market brief from prices + free news (needs Ollama running)")
+    br.add_argument("--symbols", nargs="+", default=DEFAULT)
+    br.set_defaults(fn=cmd_brief)
+    sub.add_parser("deals", help="find pullback setups on a 10-coin watchlist").set_defaults(fn=cmd_deals)
+    sub.add_parser("risk", help="check exposure, open risk and 24h loss of the paper account").set_defaults(fn=cmd_risk)
+    sub.add_parser("chat", help="ask questions about your paper account").set_defaults(fn=cmd_chat)
 
     c = sub.add_parser("copy-scan", help="find good Hyperliquid wallets and what they hold")
     c.add_argument("--top", type=int, default=15)
