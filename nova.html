@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nova</title>
+    <style>
+        :root {
+            --bg: #05060a;
+            --text: #e8f1ff;
+            --glow: #4da3ff;
+            /* Change these to make the intro faster or slower */
+            --fade-in: 1.4s;
+            --hold: 1.2s;
+            --fade-out: 1.2s;
+        }
+
+        * { box-sizing: border-box; }
+
+        html, body {
+            margin: 0;
+            height: 100%;
+            background: var(--bg);
+            color: var(--text);
+            font-family: "Segoe UI", system-ui, Arial, sans-serif;
+            overflow: hidden;
+        }
+
+        /* ---------- Intro (opening animation) ---------- */
+        #intro {
+            position: fixed;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--bg);
+            z-index: 10;
+        }
+
+        #intro h1 {
+            margin: 0;
+            font-size: clamp(5rem, 22vw, 18rem);
+            font-weight: 800;
+            letter-spacing: 0.18em;
+            padding-left: 0.18em; /* balances the letter-spacing so the word looks centered */
+            color: var(--text);
+            text-shadow: 0 0 30px var(--glow), 0 0 80px var(--glow);
+            opacity: 0;
+            transform: scale(0.92);
+            animation:
+                nova-in  var(--fade-in)  ease-out forwards,
+                nova-out var(--fade-out) ease-in  forwards calc(var(--fade-in) + var(--hold));
+        }
+
+        @keyframes nova-in {
+            from { opacity: 0; transform: scale(0.92); filter: blur(12px); }
+            to   { opacity: 1; transform: scale(1);    filter: blur(0); }
+        }
+
+        @keyframes nova-out {
+            from { opacity: 1; transform: scale(1);    filter: blur(0); }
+            to   { opacity: 0; transform: scale(1.08); filter: blur(10px); }
+        }
+
+        #intro.done {
+            display: none;
+        }
+
+        /* ---------- Main Nova screen (shown after the intro) ---------- */
+        #app {
+            position: fixed;
+            inset: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 1.5rem;
+            opacity: 0;
+            transition: opacity 0.8s ease;
+        }
+
+        #app.show {
+            opacity: 1;
+        }
+
+        .orb {
+            width: 140px;
+            height: 140px;
+            border-radius: 50%;
+            background: radial-gradient(circle at 35% 35%, #bfe0ff, var(--glow) 55%, #123a7a);
+            box-shadow: 0 0 60px var(--glow);
+            animation: breathe 3s ease-in-out infinite;
+        }
+
+        @keyframes breathe {
+            0%, 100% { transform: scale(1); }
+            50%      { transform: scale(1.08); }
+        }
+
+        #status {
+            font-size: 1.1rem;
+            opacity: 0.7;
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            #intro h1 { animation-duration: 0.01s; filter: none; }
+            .orb { animation: none; }
+        }
+    </style>
+</head>
+<body>
+
+<div id="intro">
+    <h1 id="nova-title">NOVA</h1>
+</div>
+
+<main id="app">
+    <div class="orb"></div>
+    <div id="status">Listening...</div>
+</main>
+
+<script>
+    // The intro ends when the fade-out animation finishes.
+    // Then the intro is removed and the app screen fades in.
+    const intro = document.getElementById('intro');
+    const title = document.getElementById('nova-title');
+    const app = document.getElementById('app');
+
+    let started = false;
+    function openApp() {
+        if (started) return;
+        started = true;
+        intro.classList.add('done');
+        app.classList.add('show');
+        // Start your voice code here, for example: startNova();
+    }
+
+    title.addEventListener('animationend', (e) => {
+        if (e.animationName === 'nova-out') openApp();
+    });
+
+    // Safety: if the animation event never fires, open the app anyway.
+    setTimeout(openApp, 6000);
+</script>
+
+</body>
+</html>
