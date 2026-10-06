@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="dark">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -7,15 +7,15 @@
 <style>
 :root{
   --bg:#0a0e16; --panel:#121826; --panel2:#182033; --line:#26324b; --text:#e7ecf6; --muted:#8c99b5;
-  --accent:#4c8dff; --up:#2ebd85; --down:#f6465d; --warn:#f0b90b; --chart:#0d1320; --grid:#1b2438;
+  --accent:#4c8dff; --up:#2ebd85; --down:#f6465d; --warn:#f0b90b; --chart:#0d1320; --grid:#1b2438; color-scheme:dark;
 }
-:root[data-theme=light]{
+@media (prefers-color-scheme: light){:root:not([data-theme="dark"]){
   --bg:#eef1f7; --panel:#ffffff; --panel2:#f3f5fa; --line:#d8deea; --text:#18202f; --muted:#5d6a85;
-  --accent:#2563eb; --up:#0f9d6b; --down:#d9304a; --warn:#b7791f; --chart:#ffffff; --grid:#e8ecf4;
-}
+  --accent:#2563eb; --up:#0f9d6b; --down:#d9304a; --warn:#b7791f; --chart:#ffffff; --grid:#e8ecf4; color-scheme:light}}
+:root[data-theme="light"]{
+  --bg:#eef1f7; --panel:#ffffff; --panel2:#f3f5fa; --line:#d8deea; --text:#18202f; --muted:#5d6a85;
+  --accent:#2563eb; --up:#0f9d6b; --down:#d9304a; --warn:#b7791f; --chart:#ffffff; --grid:#e8ecf4; color-scheme:light}
 *{box-sizing:border-box}
-html{color-scheme:dark}
-:root[data-theme=light]{color-scheme:light}
 body{margin:0;background:var(--bg);color:var(--text);font:14px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
 button,input,select{font:inherit;color:inherit}
 .num,td,.kpi b{font-variant-numeric:tabular-nums}
@@ -23,7 +23,7 @@ button,input,select{font:inherit;color:inherit}
 :focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 
 /* top bar */
-.top{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;padding:10px 16px;background:var(--panel);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:20}
+.top{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;padding:10px 16px;background:var(--panel);border-bottom:1px solid var(--line);position:sticky;top:env(safe-area-inset-top,0px);z-index:20}
 .brand{font-weight:700;font-size:16px;letter-spacing:.2px}
 .brand span{color:var(--accent)}
 .spacer{flex:1}
@@ -129,6 +129,10 @@ td.empty{color:var(--muted);text-align:center;padding:24px}
 .toast{background:var(--panel2);border:1px solid var(--line);border-left:4px solid var(--accent);padding:8px 12px;border-radius:6px;box-shadow:0 6px 20px rgba(0,0,0,.35);font-size:13px}
 .toast.good{border-left-color:var(--up)} .toast.bad{border-left-color:var(--down)} .toast.warn{border-left-color:var(--warn)}
 footer{color:var(--muted);font-size:12px;text-align:center;padding:0 16px 24px}
+[hidden]{display:none!important}
+.modalBack{position:fixed;inset:0;background:rgba(0,0,0,.55);display:grid;place-items:center;z-index:60;padding:16px}
+.modal{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:16px;max-width:420px;width:100%;box-shadow:0 10px 40px rgba(0,0,0,.45)}
+.modal p{margin:0 0 12px;white-space:pre-line}
 noscript{display:block;padding:20px;text-align:center}
 </style>
 </head>
@@ -255,7 +259,7 @@ noscript{display:block;padding:20px;text-align:center}
         </table></div>
       </div>
       <div class="pane" data-pane="hist">
-        <div style="display:flex;justify-content:flex-end;margin-bottom:8px"><button class="btn small" id="csvBtn">Download CSV</button></div>
+        <div style="display:flex;justify-content:flex-end;margin-bottom:8px"><button class="btn small" id="csvBtn">Copy / download CSV</button></div>
         <div class="tbl"><table>
           <thead><tr><th>Closed</th><th>Symbol</th><th>Side</th><th>Entry</th><th>Exit</th><th>P&amp;L</th><th>%</th><th>Why</th></tr></thead>
           <tbody id="histBody"></tbody>
@@ -281,6 +285,7 @@ noscript{display:block;padding:20px;text-align:center}
 </main>
 <footer>Paper trading only. Not financial advice. Crypto can lose money fast — test for weeks before you ever risk real money.</footer>
 <div id="toasts" aria-live="polite"></div>
+<div class="modalBack" id="modal" hidden><div class="modal" role="dialog" aria-modal="true" aria-label="Please confirm"><p id="mText"></p><div class="btnrow"><button class="btn" id="mNo">Cancel</button><button class="btn primary" id="mYes">Confirm</button></div></div></div>
 
 <script>
 'use strict';
@@ -349,7 +354,7 @@ const KEY='maaan.tradingbot.v1';
 function fresh(old){
   const st=Object.assign({},DEFAULTS,(old&&old.settings)||{});
   return {settings:st,cash:st.startBalance,base:st.startBalance,positions:[],trades:[],equity:[],peak:st.startBalance,maxDd:0,
-    nextId:1,dayKey:todayKey(),dayStart:st.startBalance,theme:(old&&old.theme)||'dark',feed:(old&&old.feed)||'sim',
+    nextId:1,dayKey:todayKey(),dayStart:st.startBalance,theme:(old&&old.theme)||'',feed:(old&&old.feed)||'sim',
     symbol:(old&&old.symbol)||'BTCUSDT',tf:(old&&old.tf)||'1m',speed:(old&&old.speed)||10,log:[],lastPx:{},apiKey:''};
 }
 let S=(function(){
@@ -364,6 +369,16 @@ function saveSoon(){clearTimeout(saveT);saveT=setTimeout(()=>{try{const o=Object
 const M={};                 // market per symbol
 const R={botOn:false,halt:null,lastExit:{},dirty:{hist:true,log:true,grok:true},liveFails:0,liveBusy:false};
 const G={last:null,feed:[],busy:false,lastCall:0,queue:new Map()};
+
+/* ============ in-page confirm (viewer frames block confirm()) ============ */
+function ask(msg,yes){
+  return new Promise(res=>{
+    const m=$('#modal');$('#mText').textContent=msg;$('#mYes').textContent=yes||'Confirm';m.hidden=false;$('#mNo').focus();
+    const done=v=>{m.hidden=true;$('#mYes').onclick=$('#mNo').onclick=null;document.removeEventListener('keydown',key);res(v)};
+    const key=e=>{if(e.key==='Escape')done(false)};
+    document.addEventListener('keydown',key);$('#mYes').onclick=()=>done(true);$('#mNo').onclick=()=>done(false);
+  });
+}
 
 /* ============ logging / toasts ============ */
 function log(level,msg){S.log.unshift({ts:Date.now(),level,msg});if(S.log.length>300)S.log.length=300;R.dirty.log=true;saveSoon()}
@@ -845,17 +860,17 @@ function onSettingChange(e){
 }
 
 /* ============ actions ============ */
-function startBot(){
+async function startBot(){
   if(R.halt){
-    if(!confirm('The risk guard stopped the bot:\n'+R.halt+'\n\nResume anyway? This resets the guard baseline to your current equity.'))return;
+    if(!await ask('The risk guard stopped the bot:\n'+R.halt+'\n\nResume anyway? This resets the guard baseline to your current equity.','Resume'))return;
     S.dayStart=equity();S.peak=equity();R.halt=null;banner('');
   }
   R.botOn=true;log('good','Bot started ('+S.settings.source+') on '+S.settings.symbols.map(s=>SYMBOLS[s].name).join(', '));renderBot();
   if(!S.settings.symbols.length)toast('No markets selected for the bot (Settings tab)','warn');
 }
 function stopBot(){R.botOn=false;log('','Bot paused');renderBot()}
-function kill(){
-  if(!confirm('Stop the bot and close ALL open positions now?'))return;
+async function kill(){
+  if(!await ask('Stop the bot and close ALL open positions now?','Kill it'))return;
   R.botOn=false;G.queue.forEach(j=>j.res(null));G.queue.clear();
   const n=S.positions.length;closeAll('Kill switch');log('bad','KILL SWITCH used. Closed '+n+' position(s).');renderBot();renderFast();
 }
@@ -881,7 +896,9 @@ function csv(){
   const head=['id','symbol','side','entry','exit','qty','cost_usd','pnl_usd','pnl_pct','fees_usd','opened','closed','reason','source'];
   const q=v=>'"'+String(v).replace(/"/g,'""')+'"';
   const rows=S.trades.map(t=>[t.id,t.sym,t.side,t.entry,t.exit,t.qty,t.cost,t.pnl,t.pnlPct,t.fees,new Date(t.openTs).toISOString(),new Date(t.closeTs).toISOString(),t.reason,t.src].map(q).join(','));
-  const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([head.join(',')+'\n'+rows.join('\n')],{type:'text/csv'}));a.download='trades.csv';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000);
+  const text=head.join(',')+'\n'+rows.join('\n');
+  try{const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([text],{type:'text/csv'}));a.download='trades.csv';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000)}catch(e){}
+  (navigator.clipboard?navigator.clipboard.writeText(text):Promise.reject()).then(()=>toast('CSV copied to clipboard. Paste it into a spreadsheet.','good'),()=>toast('CSV downloaded (clipboard blocked)'));
 }
 function runBacktest(){
   const m=M[S.symbol];if(!m||m.candles.length<60){$('#btOut').textContent='Not enough candles loaded yet.';return}
@@ -889,8 +906,8 @@ function runBacktest(){
   $('#btOut').innerHTML=`<b>${SYMBOLS[S.symbol].name}</b> · ${m.candles.length} candles (${S.tf}) · <b class="${cls(ret)}">${spct(ret)}</b> return · ${st.n} trades · win rate ${st.win==null?'—':fmt(st.win,0)+'%'} · profit factor ${st.pf==null?'—':st.pf===Infinity?'∞':fmt(st.pf,2)} · max drawdown ${fmt(maxDD(r.curve),2)}% · fees ${money(st.fees)}${S.feed==='sim'?'<br><span class="warn">Data is simulated random walk, so this only tests the plumbing, not the strategy.</span>':''}`;
   drawSeries($('#btChart'),r.curve,S.settings.startBalance,'No trades in this window');
 }
-function resetAccount(){
-  if(!confirm('Reset the paper account? This deletes all positions, trade history and the log.'))return;
+async function resetAccount(){
+  if(!await ask('Reset the paper account? This deletes all positions, trade history and the log.','Reset'))return;
   const keep={settings:S.settings,theme:S.theme,feed:S.feed,symbol:S.symbol,tf:S.tf,speed:S.speed};
   S=fresh(keep);R.botOn=false;R.halt=null;R.lastExit={};banner('');
   S.apiKey=$('#gKey').value;S.rememberKey=$('#gRemember').checked;R.dirty={hist:true,log:true,grok:true};saveSoon();renderBot();renderFast();renderEquity();toast('Account reset','good');
@@ -920,7 +937,8 @@ function initTabs(root){
     if(b.dataset.tab==='hist')renderHistory();if(b.dataset.tab==='log')renderLog();
   }));
 }
-function applyTheme(){document.documentElement.dataset.theme=S.theme;$('#themeBtn').textContent=S.theme==='dark'?'☾':'☀'}
+const isDark=()=>{const t=document.documentElement.dataset.theme;return t?t==='dark':!matchMedia('(prefers-color-scheme: light)').matches};
+function applyTheme(){if(S.theme)document.documentElement.dataset.theme=S.theme;else delete document.documentElement.dataset.theme;$('#themeBtn').textContent=isDark()?'☾':'☀'}
 
 function init(){
   applyTheme();
@@ -936,10 +954,10 @@ function init(){
   $('#speedSel').addEventListener('change',e=>{S.speed=+e.target.value;saveSoon()});
   $('#botBtn').addEventListener('click',()=>R.botOn?stopBot():startBot());
   $('#killBtn').addEventListener('click',kill);
-  $('#themeBtn').addEventListener('click',()=>{S.theme=S.theme==='dark'?'light':'dark';applyTheme();saveSoon();renderFast();renderEquity()});
+  $('#themeBtn').addEventListener('click',()=>{S.theme=isDark()?'light':'dark';applyTheme();saveSoon();renderFast();renderEquity()});
   $('#buyBtn').addEventListener('click',()=>manualOrder('long'));
   $('#sellBtn').addEventListener('click',()=>manualOrder('short'));
-  $('#closeAllBtn').addEventListener('click',()=>{if(!S.positions.length)return toast('No open positions');if(confirm('Close all open positions?')){closeAll('Manual close all');renderFast()}});
+  $('#closeAllBtn').addEventListener('click',async()=>{if(!S.positions.length)return toast('No open positions');if(await ask('Close all open positions?','Close all')){closeAll('Manual close all');renderFast()}});
   $('#tUsd').addEventListener('input',renderTicket);$('#tSl').addEventListener('input',renderTicket);
   $('#posBody').addEventListener('click',e=>{const b=e.target.closest('[data-close]');if(!b)return;const p=S.positions.find(x=>x.id===+b.dataset.close);if(p){closePos(p,curPx(p.sym)||p.entry,'Manual close');renderFast()}});
   $('#settingsForm').addEventListener('change',onSettingChange);
@@ -950,8 +968,8 @@ function init(){
   $('#gUrl').addEventListener('change',e=>{S.settings.url=e.target.value.trim();saveSoon()});
   $('#gModel').addEventListener('change',e=>{S.settings.model=e.target.value.trim();saveSoon()});
   $('#gKey').addEventListener('input',e=>{S.apiKey=e.target.value.trim();saveSoon()});
-  $('#gRemember').addEventListener('change',e=>{
-    if(e.target.checked&&!confirm('This saves your API key as plain text in this browser (localStorage). Anyone using this browser profile, or any script on this page, could read it. Continue?')){e.target.checked=false;return}
+  $('#gRemember').addEventListener('change',async e=>{
+    if(e.target.checked&&!await ask('This saves your API key as plain text in this browser (localStorage). Anyone using this browser profile, or any script on this page, could read it. Continue?','Save key')){e.target.checked=false;return}
     S.rememberKey=e.target.checked;saveSoon();
   });
   $('#gTest').addEventListener('click',testGrok);
