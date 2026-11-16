@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+# Repeat something you taught. No AI used, free and fast.   ./replay youtube
+cd "$(dirname "$0")"
+NAME="$1"
+[ -z "$NAME" ] && { echo "Recipes you taught:"; ls recipes 2>/dev/null | sed 's/\.js$//'; exit 0; }
+[ -f "recipes/$NAME.js" ] || { echo "No recipe called '$NAME'. Teach it first: ./teach $NAME <website>"; exit 1; }
+node "recipes/$NAME.js"

@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+# Show it ONCE how to do something. It watches and saves the steps.
+#   ./teach youtube https://youtube.com
+# A browser opens. Do the task by hand. Close the window when done.
+cd "$(dirname "$0")"
+NAME="$1"; URL="$2"
+[ -z "$NAME" ] || [ -z "$URL" ] && { echo 'Usage: ./teach <name> <website>'; exit 1; }
+mkdir -p recipes
+echo "A browser will open. Do the task by hand. Close the window when finished."
+npx playwright codegen --target javascript -o "recipes/$NAME.js" "$URL"
+echo "Saved as recipe '$NAME'. Run it again anytime with:  ./replay $NAME"
