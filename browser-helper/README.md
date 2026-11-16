@@ -33,6 +33,17 @@ It asks your OK before using the browser tool. Say yes.
 ./replay                                 # list what you taught
 ```
 
+## ChatGPT chat box
+
+```bash
+./chatgpt --login                      # once: log in by hand, close the window
+./chatgpt "give me 3 dinner ideas"     # types it in the chat box, prints the reply
+```
+
+Uses its own folder `~/chatgpt-profile`. May hit "verify you are human" checks.
+Automating the ChatGPT website can go against OpenAI's terms. Use a spare account.
+If it says "Chat box not found", ChatGPT changed its page; the line to fix is `#prompt-textarea` in `chatgpt.js`.
+
 ## Safety (read this one)
 
 - The browser uses its own folder `~/agent-profile`, NOT your main Chrome. It cannot see your other logins.
